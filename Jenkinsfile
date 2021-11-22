@@ -24,7 +24,7 @@ pipeline {
             steps {
                ansiColor('xterm') {
                   sh 'git fetch --tags'
-                  sh './build.sh cleanup'
+                  sh './build.sh cleanup vicoconsulting'
                }
             }
         }

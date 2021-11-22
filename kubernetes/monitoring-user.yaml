@@ -21,8 +21,12 @@ rules:
 - apiGroups:
   - ""
   resources:
+  - namespaces
+  - endpoints
+  - pvcs
   - pods
   - nodes
+  - nodes/proxy
   - services
   - componentstatuses
   - secrets
