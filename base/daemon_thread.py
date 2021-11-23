@@ -176,15 +176,13 @@ class CheckKubernetesDaemon:
                 if resource == 'pods':
                     self.data.setdefault('containers', K8sResourceManager('containers'))
 
-            # watcher threads
-            if resource == 'containers':
-                pass
-            elif resource == 'components':
+            if resource in ['containers', 'services']:
                 thread = TimedThread(resource, self.data_resend_interval, exit_flag,
-                                     daemon=self, daemon_method='watch_data')
+                                     daemon=self, daemon_method='report_global_data_zabbix',
+                                     delay_first_run_seconds=self.discovery_interval + 5)
                 self.manage_threads.append(thread)
                 thread.start()
-            elif resource == 'pvcs':
+            elif resource in ['components', 'pvcs']:
                 thread = TimedThread(resource, self.data_resend_interval, exit_flag,
                                      daemon=self, daemon_method='watch_data')
                 self.manage_threads.append(thread)
@@ -192,20 +190,6 @@ class CheckKubernetesDaemon:
             else:
                 thread = WatcherThread(resource, exit_flag,
                                        daemon=self, daemon_method='watch_data')
-                self.manage_threads.append(thread)
-                thread.start()
-
-            # additional looping data threads
-            if resource == 'services':
-                thread = TimedThread(resource, self.data_resend_interval, exit_flag,
-                                     daemon=self, daemon_method='report_global_data_zabbix',
-                                     delay_first_run_seconds=self.discovery_interval + 5)
-                self.manage_threads.append(thread)
-                thread.start()
-            elif resource == 'containers':
-                thread = TimedThread(resource, self.data_resend_interval, exit_flag,
-                                     daemon=self, daemon_method='report_global_data_zabbix',
-                                     delay_first_run_seconds=self.discovery_interval + 5)
                 self.manage_threads.append(thread)
                 thread.start()
 
