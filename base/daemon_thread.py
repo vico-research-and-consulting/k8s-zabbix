@@ -80,7 +80,6 @@ class CheckKubernetesDaemon:
         elif hasattr(config, "k8s_config_type") and config.k8s_config_type.lower() == "kubeconfig":
             kube_config.load_kube_config()
             self.api_client = kube_config.new_client_from_config()
-            self.api_client
         elif hasattr(config, "k8s_config_type") and config.k8s_config_type.lower() == "token":
             self.api_configuration = client.Configuration()
             self.api_configuration.host = config.k8s_api_host

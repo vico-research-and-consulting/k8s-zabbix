@@ -25,9 +25,9 @@ The solution currently supervises the following types of Kubernetes entities:
 * replicasets: Check and discover replicasets readiness
 * tls: Check tls secrets expiration dates
 
-For details or a overview of the monitored kubernetes attributes, have a look at the [documentation](http://htmlpreview.github.io/?https://github.com/zabbix-tooling/k8s-zabbix/blob/master/documentation/template/custom_service_kubernetes.html)
+For details or a overview of the monitored kubernetes attributes, have a look at the [documentation](http://htmlpreview.github.io/?https://github.com/vico-research-and-consulting/k8s-zabbix/blob/master/documentation/template/custom_service_kubernetes.html)
 
-The current docker image is published at https://hub.docker.com/repository/docker/scoopex666/k8s-zabbix/
+The current docker image is published at https://hub.docker.com/r/vicoconsulting/k8s-zabbix/
 
 Architecture Details
 =====================
@@ -137,6 +137,17 @@ Production Deployment
     * "Monitoring" →  "Latest data" →  "Add Hosts": i.e. "k8s-prod-001"
     * Enable Option "Show items without data" →  Button "Apply"
 
+Confguration
+=====================
+  * K8S_CONFIG_TYPE
+    * incluster
+      * use default kubeconfig
+    * kubeconfig
+      * load kubeconfig file from current user
+    * token
+      * use token auth
+
+
 Unix Signals
 =======
 
@@ -151,8 +162,6 @@ Authors
 
 - Amin Dandache <amin.dandache@vico-research.com>
 - Marc Schoechlin <ms-github@256bit.org>
-
-This project is heavily modified fork of [https://github.com/posuch/zabbix-kubernetes-1](https://github.com/posuch/zabbix-kubernetes-1)
 
 Licence
 =======
