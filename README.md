@@ -137,7 +137,7 @@ Production Deployment
     * "Monitoring" →  "Latest data" →  "Add Hosts": i.e. "k8s-prod-001"
     * Enable Option "Show items without data" →  Button "Apply"
 
-Confguration
+Configuration
 =====================
   * K8S_CONFIG_TYPE
     * incluster
