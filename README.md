@@ -139,6 +139,9 @@ Production Deployment
 
 Configuration
 =====================
+All Configuration Options are available through ENV Variables
+for a list of options check *config_default.py*
+
   * K8S_CONFIG_TYPE
     * incluster
       * use default kubeconfig
