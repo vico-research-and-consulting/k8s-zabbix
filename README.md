@@ -1,15 +1,18 @@
+![K8SZabbix Logo](documentation/logo.svg)
+
+
 k8s-zabbix
 =================
 
-This project provides kubernetes monitoring capabilities for zabbix using the kubernetes watch api mechanism.
-Additionally it provides capabilities to submit the same data to a system management solution by REST.
+This project provides kubernetes monitoring capabilities for zabbix using mainly the kubernetes watch api mechanism.
+Additionally, it provides capabilities to submit the same data to a system management solution by REST.
 
 New Kubernetes entities are submitted as [low level discovery](https://www.zabbix.com/documentation/current/manual/discovery/low_level_discovery)
 items in the moment of their creation (i.e. a new deployment). Kubernetes events (i.e. a pod restart) are submitted in moment of their occurrence.
 
 This tool aggregates status information of entities in some cases to the managing entity to improve the practical usage with zabbix
 (example: aggregation of the pod statuses to the deployment which manages the pods)
-Disappearing entities will be deleted by zabbix using the "Keep lost resources period" setting.
+Disappearing entities will be deleted by zabbix using the "Keep lost resources period" setting in LLC.
 
 Optionally this tool can submit kubernetes entities to a webservice in a unaggregated manner.
 This might be a very useful thing if you have left the GitOps paradigm behind and built a fully fledged management system for your infrastructure. 
@@ -20,6 +23,8 @@ The solution currently supervises the following types of Kubernetes entities:
 * components : Check and discover health of k8s components (etcd, controller-manager, scheduler etc.)
 * nodes: Check and discover active nodes
 * pods: Check pods for restarts
+* statefulsets: Check and discover statefulsets
+* daemonset: Check and discover daemonsets
 * deployments: Check and discover deployments
 * daemonsets: Check and discover daemonsets readiness
 * replicasets: Check and discover replicasets readiness
@@ -31,7 +36,6 @@ The current docker image is published at https://hub.docker.com/r/vicoconsulting
 
 Architecture Details
 =====================
-
 
 ![Deployment Diagram](documentation/deployment_yed.png)
 
@@ -82,8 +86,7 @@ Testing and development
   ```
   git tag NEW_TAG
   git push --tags
-  ./build.sh default
-  ./build.sh publish_image
+  make publish
   ```
 Production Deployment
 =====================
@@ -122,10 +125,11 @@ Production Deployment
   * Assign the template to that host
 * Create and apply deployment
   (adapt the configuration values for your environment)
-  ```
+   ```
+   vi kubernetes/deployment.yaml
+   ```
 * Adapt values corresponding to your cluster setup, use ENV Variables defined in config_default.py
-  vi kubernetes/deployment.yaml
-
+  ```
   kubectl apply -f kubernetes/deployment.yaml
   ```
 * Check proper function
@@ -152,19 +156,43 @@ for a list of options check *config_default.py*
 
 
 Unix Signals
-=======
+============
 
 Unix signals are usefuil for debugging:
 
- * SIGQUIT: Dumps the stacktraces of all threads and terminates the daemon
- * SIGUSR1: Listing count of data hold in CheckKubernetesDaemon.data
- * SIGUSR2: Listing all data hold in CheckKubernetesDaemon.data
+ * *SIGQUIT*: Dumps the stacktraces of all threads and terminates the daemon
+ * *SIGUSR1*: Display a overview of data hold in CheckKubernetesDaemon.data and CheckKubernetesDaemon.discovery_sent
+ * *SIGUSR2*: Display detailed data hold in CheckKubernetesDaemon.data and CheckKubernetesDaemon.discovery_sent
+
+
+Commandline arguments
+=====================
+
+```
+$ ./check_kubernetesd -h
+usage: check_kubernetesd [-h] [--show_effective_config] [--show_ini] [--disable_colors] ini_file
+
+Zabbix monitoring daemon for kubernetes
+
+positional arguments:
+  ini_file              optional, use a additional inifile for configuration (environment variables take precedence) or execute a binary with a fully qualified file path
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --show_effective_config
+                        display the final config as environment variablesbased env variables and ini file parameters
+  --show_ini            show variables as ini files parameters instead of environment variables
+  --disable_colors      disable colors in logoutput
+
+```
 
 Authors
 =======
 
 - Amin Dandache <amin.dandache@vico-research.com>
 - Marc Schoechlin <ms-github@256bit.org>
+
+This project is based on prior work of [https://github.com/posuch/zabbix-kubernetes-1](https://github.com/posuch/zabbix-kubernetes-1)
 
 Licence
 =======

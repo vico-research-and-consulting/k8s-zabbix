@@ -22,6 +22,11 @@ exec_cmd() {
     return 0
 }
 
+get_env(){
+   echo -n "--env ZABBIX_SERVER=localhost "
+   echo -n "--env ZABBIX_HOST=localhost "
+   echo -n "--env K8S_CONFIG_TYPE=token "
+}
 ####################################################################
 ## MAIN
 
@@ -55,22 +60,23 @@ build_image() {
     notice "Image size $(($SIZE / 1024 / 1024))MB"
 }
 
-test_container() {
-    IDENT="${IMAGE_NAME}_test"
-    docker kill $IDENT &>/dev/null
-    docker rm $IDENT &>/dev/null
-    exec_cmd "docker run --rm --env ZABBIX_SERVER='localhost' --env ZABBIX_HOST='localhost' -d --name $IDENT ${IMAGE_BASE} config_default"
-    sleep 10
-    echo "====== DOCKER LOGS"
-    docker logs --until=50s $IDENT
-    echo "=================="
-    exec_cmd "docker ps |grep $IDENT"
-    exec_cmd "docker kill $IDENT"
+test_container(){
+   IDENT="${IMAGE_NAME}_test"
+   docker kill $IDENT &> /dev/null
+   docker rm $IDENT &> /dev/null
+   exec_cmd "docker run --rm $(get_env) -d --name $IDENT ${IMAGE_BASE} --disable_colors"
+   sleep 10
+   echo "====== DOCKER LOGS"
+   docker logs --until=50s $IDENT
+   echo "=================="
+   exec_cmd "docker ps |grep $IDENT"
+   exec_cmd "docker kill $IDENT"
 }
 
-inspect() {
-    IDENT="${IMAGE_NAME}_test"
-    exec_cmd "docker run -ti --rm --env ZABBIX_SERVER='localhost' --env ZABBIX_HOST='localhost' --name $IDENT ${IMAGE_BASE} /bin/sh"
+
+inspect(){
+   IDENT="${IMAGE_NAME}_test"
+   exec_cmd "docker run -ti --rm $(get_env) --name $IDENT ${IMAGE_BASE} /bin/sh"
 }
 
 cleanup() {
@@ -112,6 +118,11 @@ if [ ${#@} -lt 2 ]; then
 fi
 
 IMAGE_REPO="${@: -1}"
+if type $IMAGE_REPO &>/dev/null;then
+   echo "ERROR: last param is not the dockerhub repo"
+   exit 1
+fi
+
 PHASES=""
 for arg in "${@:1:$((${#@} - 1))}"; do
     if [ "$arg" = "default" ]; then

@@ -1,4 +1,4 @@
-k8s_config_type = "token"	# use "incluster", "kubeconfig" or "token"
+k8s_config_type = "token"  # use "incluster", "kubeconfig" or "token"
 k8s_api_host = 'https://example.kube-apiserver.com'
 k8s_api_token = ''
 verify_ssl = True
@@ -28,5 +28,3 @@ resend_data_interval_fast = 60 * 2
 
 discovery_interval_slow = 60 * 60 * 2
 resend_data_interval_slow = 60 * 30
-
-
