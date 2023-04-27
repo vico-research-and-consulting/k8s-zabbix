@@ -38,6 +38,7 @@ class Pod(K8sObject):
             "not_ready": 0,
             "status": "OK",
         }
+        self.phase = self.data['status']['phase']
 
         if "container_statuses" in self.data['status'] and self.data['status']['container_statuses']:
             for container in self.data['status']['container_statuses']:
@@ -58,13 +59,17 @@ class Pod(K8sObject):
                 if container['ready'] is True:
                     container_status[container_name]['ready'] += 1
                     pod_data['ready'] += 1
-                else:
+                elif self.phase not in ["Succeeded", "Running", "Pending"]:
                     container_status[container_name]['not_ready'] += 1
                     pod_data['not_ready'] += 1
 
                 if container["state"] and len(container["state"]) > 0:
                     for status, container_data in container["state"].items():
-                        if container_data and status != "running":
+                        try:
+                            terminated_state = container["state"]["terminated"]["reason"]
+                        except: 
+                            terminated_state = ""
+                        if container_data and status != "running" and terminated_state != "Completed":
                             status_values.append(status)
 
                 if len(status_values) > 0:
