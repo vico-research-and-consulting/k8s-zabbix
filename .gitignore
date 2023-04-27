@@ -9,3 +9,4 @@ lib/__pycache__/*
 venv/*
 *.log
 configd*.py
+dockerize.sh
