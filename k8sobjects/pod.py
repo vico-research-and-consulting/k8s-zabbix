@@ -13,6 +13,28 @@ class Pod(K8sObject):
 
     @property
     def base_name(self):
+
+		# self.kind und self.podname 
+       if 'metadata' not in self.data and 'name' in self.data['metadata']:
+            raise Exception(f'Could not find name in metadata for resource {self.resource}')
+
+        if "owner_references" in self.data['metadata']:
+            for owner_refs in self.data['metadata']['owner_references']:
+                self.kind = owner_refs['kind']
+
+        # generate_name = self.data['metadata']['generate_name']
+        generate_name = self.data['spec']['containers'][0]['name']
+        
+        match self.kind:
+            case "Job":
+                name = re.sub(r'-\d+-$', '', generate_name)
+            case "ReplicaSet":
+                name = re.sub(r'-[a-f0-9]{4,}-$', '', generate_name)
+            case _:
+                name = re.sub(r'-$', '', generate_name)
+
+        self.podname = name
+
         for container in self.data['spec']['containers']:
             if container['name'] in self.name:
                 return container['name']
