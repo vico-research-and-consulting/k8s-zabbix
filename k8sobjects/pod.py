@@ -14,8 +14,8 @@ class Pod(K8sObject):
     @property
     def base_name(self):
 
-		# self.kind und self.podname 
-       if 'metadata' not in self.data and 'name' in self.data['metadata']:
+        # self.kind und self.podname
+        if 'metadata' not in self.data and 'name' in self.data['metadata']:
             raise Exception(f'Could not find name in metadata for resource {self.resource}')
 
         if "owner_references" in self.data['metadata']:
@@ -24,7 +24,7 @@ class Pod(K8sObject):
 
         # generate_name = self.data['metadata']['generate_name']
         generate_name = self.data['spec']['containers'][0]['name']
-        
+
         match self.kind:
             case "Job":
                 name = re.sub(r'-\d+-$', '', generate_name)
@@ -89,7 +89,7 @@ class Pod(K8sObject):
                     for status, container_data in container["state"].items():
                         try:
                             terminated_state = container["state"]["terminated"]["reason"]
-                        except: 
+                        except KeyError:
                             terminated_state = ""
                         if container_data and status != "running" and terminated_state != "Completed":
                             status_values.append(status)
