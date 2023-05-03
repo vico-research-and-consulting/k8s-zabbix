@@ -1,6 +1,7 @@
 import logging
 
 from pyzabbix import ZabbixMetric
+
 from .k8sobject import K8sObject, transform_value
 
 logger = logging.getLogger(__name__)

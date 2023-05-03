@@ -1,9 +1,9 @@
-import re
 import datetime
-import importlib
 import hashlib
+import importlib
 import json
 import logging
+import re
 
 from pyzabbix import ZabbixMetric
 
@@ -144,8 +144,8 @@ class K8sObject:
 
     @property
     def name_space(self):
-        from .node import Node
         from .component import Component
+        from .node import Node
         if isinstance(self, Node) or isinstance(self, Component):
             return None
 
