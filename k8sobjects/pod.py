@@ -89,7 +89,7 @@ class Pod(K8sObject):
                     for status, container_data in container["state"].items():
                         try:
                             terminated_state = container["state"]["terminated"]["reason"]
-                        except KeyError:
+                        except KeyError, TypeError:
                             terminated_state = ""
                         if container_data and status != "running" and terminated_state != "Completed":
                             status_values.append(status)
