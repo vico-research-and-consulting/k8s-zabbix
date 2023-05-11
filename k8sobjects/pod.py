@@ -11,6 +11,7 @@ logger = logging.getLogger(__name__)
 
 class Pod(K8sObject):
     object_type = 'pod'
+    kind = None
 
     @property
     def base_name(self):
