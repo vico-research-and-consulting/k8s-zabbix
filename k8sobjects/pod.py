@@ -19,9 +19,11 @@ class Pod(K8sObject):
         if 'metadata' not in self.data and 'name' in self.data['metadata']:
             raise Exception(f'Could not find name in metadata for resource {self.resource}')
 
-        if "owner_references" in self.data['metadata']:
+        if "owner_references" in self.data['metadata'] and isinstance(self.data['metadata']['owner_references'], dict):
             for owner_refs in self.data['metadata']['owner_references']:
-                self.kind = owner_refs['kind']
+                if 'kind' in owner_refs:
+                    self.kind = owner_refs['kind']
+                    break
 
         # generate_name = self.data['metadata']['generate_name']
         generate_name = self.data['spec']['containers'][0]['name']
