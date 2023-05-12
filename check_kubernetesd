@@ -12,8 +12,10 @@ import os
 import re
 import signal
 import sys
-import sentry_sdk
 import time
+
+import sentry_sdk
+
 from base.daemon_thread import CheckKubernetesDaemon, str2bool
 
 KNOWN_ACTIONS = ['discover', 'get']

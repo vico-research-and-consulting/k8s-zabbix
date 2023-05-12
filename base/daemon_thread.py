@@ -8,17 +8,18 @@ from datetime import datetime, timedelta
 from types import ModuleType
 from typing import Dict, List, Union
 
-from kubernetes import client, watch
+from k8sobjects import get_node_names
+from k8sobjects.container import get_container_zabbix_metrics
+from k8sobjects.k8sobject import K8sResourceManager
+from k8sobjects.pvc import get_pvc_data
+from kubernetes import client
 from kubernetes import config as kube_config
+from kubernetes import watch
 from kubernetes.client import ApiClient
 from pyzabbix import ZabbixMetric, ZabbixSender
 
 from base.timed_threads import TimedThread
 from base.watcher_thread import WatcherThread
-from k8sobjects import get_node_names
-from k8sobjects.container import get_container_zabbix_metrics
-from k8sobjects.k8sobject import K8sResourceManager
-from k8sobjects.pvc import get_pvc_data
 
 exit_flag = threading.Event()
 
