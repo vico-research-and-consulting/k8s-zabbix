@@ -8,17 +8,20 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from pprint import pformat
 
-from kubernetes import client, watch
-from kubernetes import config as kube_config
-from kubernetes.client import ApiClient, CoreV1Api, AppsV1Api, ExtensionsV1beta1Api
-from pyzabbix import ZabbixMetric, ZabbixSender, ZabbixResponse
-
-from base.config import Configuration, ClusterAccessConfigType
-from base.timed_threads import TimedThread
-from base.watcher_thread import WatcherThread
 from k8sobjects.k8sobject import K8sObject
 from k8sobjects.k8sresourcemanager import K8sResourceManager
 from k8sobjects.pvc import get_pvc_volumes_for_all_nodes
+from kubernetes import client
+from kubernetes import config as kube_config
+from kubernetes import watch
+from kubernetes.client import (ApiClient, AppsV1Api, CoreV1Api,
+                               ExtensionsV1beta1Api)
+from pyzabbix import ZabbixMetric, ZabbixResponse, ZabbixSender
+
+from base.config import ClusterAccessConfigType, Configuration
+from base.timed_threads import TimedThread
+from base.watcher_thread import WatcherThread
+
 from .web_api import WebApi
 
 exit_flag = threading.Event()

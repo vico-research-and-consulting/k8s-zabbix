@@ -1,9 +1,8 @@
 import logging
 import threading
+from typing import TYPE_CHECKING
 
 from urllib3.exceptions import ProtocolError
-
-from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from base.daemon_thread import CheckKubernetesDaemon

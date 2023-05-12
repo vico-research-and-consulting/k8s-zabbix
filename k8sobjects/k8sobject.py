@@ -3,7 +3,6 @@ import hashlib
 import json
 import logging
 import re
-
 from typing import TYPE_CHECKING, TypedDict
 
 if TYPE_CHECKING:
@@ -141,8 +140,8 @@ class K8sObject:
 
     @property
     def name_space(self) -> str | None:
-        from .node import Node
         from .component import Component
+        from .node import Node
         if isinstance(self, Node) or isinstance(self, Component):
             return None
 

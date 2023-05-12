@@ -10,14 +10,14 @@ import logging
 import os
 import signal
 import sys
+import time
 from typing import List
 
 import coloredlogs as coloredlogs
 import sentry_sdk
-import time
 
-from base.daemon_thread import CheckKubernetesDaemon
 from base.config import Configuration
+from base.daemon_thread import CheckKubernetesDaemon
 
 KNOWN_ACTIONS = ['discover', 'get']
 

@@ -6,7 +6,7 @@ from kubernetes.client import CoreV1Api
 from pyzabbix import ZabbixMetric
 
 from . import get_node_names
-from .k8sobject import K8sObject, ObjectDataType, MetadataObjectType
+from .k8sobject import K8sObject, MetadataObjectType, ObjectDataType
 from .k8sresourcemanager import K8sResourceManager
 
 logger = logging.getLogger(__file__)
