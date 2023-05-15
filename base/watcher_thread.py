@@ -22,7 +22,7 @@ class WatcherThread(threading.Thread):
         self.stop_thread = True
 
     def run(self):
-        self.logger.info('[start thread|watch] %s -> %s' % (self.resource, self.daemon_method))
+        self.logger.info("[start thread|watch] %s -> %s" % (self.resource, self.daemon_method))
         try:
             getattr(self.daemon, self.daemon_method)(self.resource)
         except (ProtocolError, ConnectionError) as e:

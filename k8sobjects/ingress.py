@@ -6,7 +6,7 @@ logger = logging.getLogger(__name__)
 
 
 class Ingress(K8sObject):
-    object_type = 'ingress'
+    object_type = "ingress"
 
     @property
     def resource_data(self):

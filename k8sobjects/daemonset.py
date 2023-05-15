@@ -6,7 +6,7 @@ logger = logging.getLogger(__name__)
 
 
 class Daemonset(K8sObject):
-    object_type = 'daemonset'
+    object_type = "daemonset"
 
     @property
     def resource_data(self):

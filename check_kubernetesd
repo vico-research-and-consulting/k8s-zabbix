@@ -18,10 +18,11 @@ import sentry_sdk
 
 from base.daemon_thread import CheckKubernetesDaemon, str2bool
 
-KNOWN_ACTIONS = ['discover', 'get']
+KNOWN_ACTIONS = ["discover", "get"]
 
 formatter = logging.Formatter(
-    '%(asctime)s - %(threadName)s : {%(pathname)s:%(lineno)d} : %(levelname)s : %(name)s - %(message)s')
+    "%(asctime)s - %(threadName)s : {%(pathname)s:%(lineno)d} : %(levelname)s : %(name)s - %(message)s"
+)
 stream = logging.StreamHandler(sys.stdout)
 stream.setFormatter(formatter)
 
@@ -35,15 +36,13 @@ def to_array(list_string):
         return re.split(r"[\s,]+", config.web_api_resources_exclude.strip())
 
 
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser(
-        description='Monitoring daemon for kubernetes'
-    )
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Monitoring daemon for kubernetes")
 
     args, remaining_args = parser.parse_known_args()
 
     if len(remaining_args) < 1:
-        config_name = 'config_default'
+        config_name = "config_default"
     else:
         config_name = remaining_args[0]
 
@@ -55,10 +54,10 @@ if __name__ == '__main__':
         sys.exit(1)
 
     defaults_file = os.path.realpath(os.path.dirname(sys.argv[0])) + "/" + config_name + ".py"
-    with open(defaults_file, 'r') as fh:
-        content_lines = fh.read().split('\n')
+    with open(defaults_file, "r") as fh:
+        content_lines = fh.read().split("\n")
 
-    for key, val in [x.split('=') for x in content_lines if x]:
+    for key, val in [x.split("=") for x in content_lines if x]:
         key = key.strip()
         if key.upper() in os.environ and os.environ[key.upper()] != "":
             print("setting %s by environment variable %s" % (key, key.upper()))
@@ -74,10 +73,10 @@ if __name__ == '__main__':
     if str2bool(config.zabbix_debug):
         logger.info("starting with zabbix debug")
         config.zabbix_debug = True
-        log = logging.getLogger('pyzabbix')
+        log = logging.getLogger("pyzabbix")
         log.setLevel(logging.DEBUG)
     else:
-        log = logging.getLogger('pyzabbix')
+        log = logging.getLogger("pyzabbix")
         log.setLevel(logging.INFO)
 
     if str2bool(config.debug):
@@ -93,23 +92,43 @@ if __name__ == '__main__':
     zabbix_resources_exclude = to_array(config.zabbix_resources_exclude)
     resources_exclude = to_array(config.resources_exclude)
 
-    mgmt_daemon = CheckKubernetesDaemon(config, config_name,
-                                        ['nodes'],
-                                        resources_exclude, web_api_resources_exclude, zabbix_resources_exclude,
-                                        config.discovery_interval_slow, config.resend_data_interval_slow)
+    mgmt_daemon = CheckKubernetesDaemon(
+        config,
+        config_name,
+        ["nodes"],
+        resources_exclude,
+        web_api_resources_exclude,
+        zabbix_resources_exclude,
+        config.discovery_interval_slow,
+        config.resend_data_interval_slow,
+    )
     daemons.append(mgmt_daemon)
 
     daemons.append(
-        CheckKubernetesDaemon(config, config_name,
-                              ['components', 'pvcs'],
-                              resources_exclude, web_api_resources_exclude, zabbix_resources_exclude,
-                              config.discovery_interval_slow, config.resend_data_interval_fast))
+        CheckKubernetesDaemon(
+            config,
+            config_name,
+            ["components", "pvcs"],
+            resources_exclude,
+            web_api_resources_exclude,
+            zabbix_resources_exclude,
+            config.discovery_interval_slow,
+            config.resend_data_interval_fast,
+        )
+    )
 
     daemons.append(
-        CheckKubernetesDaemon(config, config_name,
-                              ['deployments', 'statefulsets', 'pods', 'containers'],
-                              resources_exclude, web_api_resources_exclude, zabbix_resources_exclude,
-                              config.discovery_interval_slow, config.resend_data_interval_slow))
+        CheckKubernetesDaemon(
+            config,
+            config_name,
+            ["deployments", "statefulsets", "pods", "containers"],
+            resources_exclude,
+            web_api_resources_exclude,
+            zabbix_resources_exclude,
+            config.discovery_interval_slow,
+            config.resend_data_interval_slow,
+        )
+    )
 
     if config.debug_k8s_events:
         for daemon in daemons:
@@ -119,7 +138,6 @@ if __name__ == '__main__':
     def _signal_handler(signum, *args):
         mgmt_daemon.handler(signum)
 
-
     def stacktraces_and_terminate(signum, frame):
         print("#" * 80)
         print("# Threadump")
@@ -127,7 +145,6 @@ if __name__ == '__main__':
         print("#")
         print("#" * 80)
         sys.exit(1)
-
 
     signal.signal(signal.SIGQUIT, stacktraces_and_terminate)
     signal.signal(signal.SIGUSR1, _signal_handler)

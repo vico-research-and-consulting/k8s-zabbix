@@ -10,66 +10,65 @@ logger = logging.getLogger(__name__)
 
 
 class Pod(K8sObject):
-    object_type = 'pod'
+    object_type = "pod"
     kind = None
 
     @property
     def base_name(self):
-
         # self.kind und self.podname
-        if 'metadata' not in self.data and 'name' in self.data['metadata']:
-            raise Exception(f'Could not find name in metadata for resource {self.resource}')
+        if "metadata" not in self.data and "name" in self.data["metadata"]:
+            raise Exception(f"Could not find name in metadata for resource {self.resource}")
 
-        if "owner_references" in self.data['metadata'] and isinstance(self.data['metadata']['owner_references'], dict):
-            for owner_refs in self.data['metadata']['owner_references']:
-                if 'kind' in owner_refs:
-                    self.kind = owner_refs['kind']
+        if "owner_references" in self.data["metadata"] and isinstance(self.data["metadata"]["owner_references"], dict):
+            for owner_refs in self.data["metadata"]["owner_references"]:
+                if "kind" in owner_refs:
+                    self.kind = owner_refs["kind"]
                     break
 
         # generate_name = self.data['metadata']['generate_name']
-        generate_name = self.data['spec']['containers'][0]['name']
+        generate_name = self.data["spec"]["containers"][0]["name"]
 
         match self.kind:
             case "Job":
-                name = re.sub(r'-\d+-$', '', generate_name)
+                name = re.sub(r"-\d+-$", "", generate_name)
             case "ReplicaSet":
-                name = re.sub(r'-[a-f0-9]{4,}-$', '', generate_name)
+                name = re.sub(r"-[a-f0-9]{4,}-$", "", generate_name)
             case _:
-                name = re.sub(r'-$', '', generate_name)
+                name = re.sub(r"-$", "", generate_name)
 
         self.podname = name
 
-        for container in self.data['spec']['containers']:
-            if container['name'] in self.name:
-                return container['name']
+        for container in self.data["spec"]["containers"]:
+            if container["name"] in self.name:
+                return container["name"]
         return self.name
 
     @property
     def containers(self):
         containers = {}
-        for container in self.data['spec']['containers']:
-            containers.setdefault(container['name'], 0)
-            containers[container['name']] += 1
+        for container in self.data["spec"]["containers"]:
+            containers.setdefault(container["name"], 0)
+            containers[container["name"]] += 1
         return containers
 
     @property
     def resource_data(self):
         data = super().resource_data
-        data['containers'] = json.dumps(self.containers)
+        data["containers"] = json.dumps(self.containers)
         container_status = dict()
-        data['ready'] = True
+        data["ready"] = True
         pod_data = {
             "restart_count": 0,
             "ready": 0,
             "not_ready": 0,
             "status": "OK",
         }
-        self.phase = self.data['status']['phase']
+        self.phase = self.data["status"]["phase"]
 
-        if "container_statuses" in self.data['status'] and self.data['status']['container_statuses']:
-            for container in self.data['status']['container_statuses']:
+        if "container_statuses" in self.data["status"] and self.data["status"]["container_statuses"]:
+            for container in self.data["status"]["container_statuses"]:
                 status_values = []
-                container_name = container['name']
+                container_name = container["name"]
 
                 # this pod data
                 if container_name not in container_status:
@@ -79,15 +78,15 @@ class Pod(K8sObject):
                         "not_ready": 0,
                         "status": "OK",
                     }
-                container_status[container_name]['restart_count'] += container['restart_count']
-                pod_data['restart_count'] += container['restart_count']
+                container_status[container_name]["restart_count"] += container["restart_count"]
+                pod_data["restart_count"] += container["restart_count"]
 
-                if container['ready'] is True:
-                    container_status[container_name]['ready'] += 1
-                    pod_data['ready'] += 1
+                if container["ready"] is True:
+                    container_status[container_name]["ready"] += 1
+                    pod_data["ready"] += 1
                 elif self.phase not in ["Succeeded", "Running", "Pending"]:
-                    container_status[container_name]['not_ready'] += 1
-                    pod_data['not_ready'] += 1
+                    container_status[container_name]["not_ready"] += 1
+                    pod_data["not_ready"] += 1
 
                 if container["state"] and len(container["state"]) > 0:
                     for status, container_data in container["state"].items():
@@ -99,22 +98,24 @@ class Pod(K8sObject):
                             status_values.append(status)
 
                 if len(status_values) > 0:
-                    container_status[container_name]['status'] = 'ERROR: ' + (','.join(status_values))
-                    pod_data['status'] = container_status[container_name]['status']
-                    data['ready'] = False
+                    container_status[container_name]["status"] = "ERROR: " + (",".join(status_values))
+                    pod_data["status"] = container_status[container_name]["status"]
+                    data["ready"] = False
 
-        data['container_status'] = json.dumps(container_status)
-        data['pod_data'] = json.dumps(pod_data)
+        data["container_status"] = json.dumps(container_status)
+        data["pod_data"] = json.dumps(pod_data)
         return data
 
     def get_zabbix_discovery_data(self):
         data = list()
         for container in self.containers:
-            data += [{
-                "{#NAMESPACE}": self.name_space,
-                "{#NAME}": self.base_name,
-                "{#CONTAINER}": container,
-            }]
+            data += [
+                {
+                    "{#NAMESPACE}": self.name_space,
+                    "{#NAME}": self.base_name,
+                    "{#CONTAINER}": container,
+                }
+            ]
         return data
 
     def get_discovery_for_zabbix(self, discovery_data=None):
@@ -123,10 +124,12 @@ class Pod(K8sObject):
 
         return ZabbixMetric(
             self.zabbix_host,
-            'check_kubernetesd[discover,containers]',
-            json.dumps({
-                'data': discovery_data,
-            })
+            "check_kubernetesd[discover,containers]",
+            json.dumps(
+                {
+                    "data": discovery_data,
+                }
+            ),
         )
 
     # -> not used, aggregate over containers

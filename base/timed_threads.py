@@ -9,9 +9,9 @@ class TimedThread(threading.Thread):
     daemon: bool = False
 
     # TODO: change default of delay_first_run_seconds to 120 seconds
-    def __init__(self, resource, interval, exit_flag, daemon, daemon_method,
-                 delay_first_run=False,
-                 delay_first_run_seconds=60):
+    def __init__(
+        self, resource, interval, exit_flag, daemon, daemon_method, delay_first_run=False, delay_first_run_seconds=60
+    ):
         self.cycle_interval_seconds = interval
         self.exit_flag = exit_flag
         self.resource = resource
@@ -29,9 +29,10 @@ class TimedThread(threading.Thread):
     def run(self):
         # manage first run
         if self.delay_first_run:
-            self.logger.info('%s -> %s | delaying first run by %is [interval %is]' %
-                             (self.resource, self.daemon_method, self.delay_first_run_seconds,
-                              self.cycle_interval_seconds))
+            self.logger.info(
+                "%s -> %s | delaying first run by %is [interval %is]"
+                % (self.resource, self.daemon_method, self.delay_first_run_seconds, self.cycle_interval_seconds)
+            )
             time.sleep(self.delay_first_run_seconds)
             try:
                 self.run_requests(first_run=True)
@@ -45,22 +46,31 @@ class TimedThread(threading.Thread):
             except Exception as e:
                 self.logger.exception(e)
                 self.logger.warning(
-                    'looprun failed on timed thread %s.%s [interval %is]\nback off ... retrying in %s seconds' %
-                    (self.resource, self.daemon_method, self.cycle_interval_seconds, self.cycle_interval_seconds))
+                    "looprun failed on timed thread %s.%s [interval %is]\nback off ... retrying in %s seconds"
+                    % (self.resource, self.daemon_method, self.cycle_interval_seconds, self.cycle_interval_seconds)
+                )
                 time.sleep(self.cycle_interval_seconds)
 
-        self.logger.info('terminating looprun thread %s.%s' % (self.resource, self.daemon_method))
+        self.logger.info("terminating looprun thread %s.%s" % (self.resource, self.daemon_method))
 
     def run_requests(self, first_run=False):
         if first_run:
-            self.logger.debug('first looprun on timed thread %s.%s [interval %is]' %
-                              (self.resource, self.daemon_method, self.cycle_interval_seconds))
+            self.logger.debug(
+                "first looprun on timed thread %s.%s [interval %is]"
+                % (self.resource, self.daemon_method, self.cycle_interval_seconds)
+            )
             getattr(self.daemon, self.daemon_method)(self.resource)
-            self.logger.debug('first looprun complete on timed thread %s.%s [interval %is]' %
-                              (self.resource, self.daemon_method, self.cycle_interval_seconds))
+            self.logger.debug(
+                "first looprun complete on timed thread %s.%s [interval %is]"
+                % (self.resource, self.daemon_method, self.cycle_interval_seconds)
+            )
         else:
-            self.logger.debug('looprun on timed thread %s.%s [interval %is]' %
-                              (self.resource, self.daemon_method, self.cycle_interval_seconds))
+            self.logger.debug(
+                "looprun on timed thread %s.%s [interval %is]"
+                % (self.resource, self.daemon_method, self.cycle_interval_seconds)
+            )
             getattr(self.daemon, self.daemon_method)(self.resource)
-            self.logger.debug('looprun complete on timed thread %s.%s [interval %is]' %
-                              (self.resource, self.daemon_method, self.cycle_interval_seconds))
+            self.logger.debug(
+                "looprun complete on timed thread %s.%s [interval %is]"
+                % (self.resource, self.daemon_method, self.cycle_interval_seconds)
+            )

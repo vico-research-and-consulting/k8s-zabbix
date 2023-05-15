@@ -10,17 +10,17 @@ from pyzabbix import ZabbixMetric
 logger = logging.getLogger(__name__)
 
 K8S_RESOURCES = dict(
-    nodes='node',
-    components='component',
-    services='service',
-    deployments='deployment',
-    statefulsets='statefulset',
-    daemonsets='daemonset',
-    pods='pod',
-    containers='container',
-    secrets='secret',
-    ingresses='ingress',
-    pvcs='pvc'
+    nodes="node",
+    components="component",
+    services="service",
+    deployments="deployment",
+    statefulsets="statefulset",
+    daemonsets="daemonset",
+    pods="pod",
+    containers="container",
+    secrets="secret",
+    ingresses="ingress",
+    pvcs="pvc",
 )
 
 
@@ -32,7 +32,7 @@ def json_encoder(obj):
 def transform_value(value):
     if value is None:
         return 0
-    m = re.match(r'^(\d+)Ki$', str(value))
+    m = re.match(r"^(\d+)Ki$", str(value))
     if m:
         return int(m.group(1)) * 1024
     return value
@@ -40,7 +40,7 @@ def transform_value(value):
 
 def slugit(name_space, name, maxlen):
     if name_space:
-        slug = name_space + '/' + name
+        slug = name_space + "/" + name
     else:
         slug = name
 
@@ -60,7 +60,7 @@ class K8sResourceManager:
         self.objects = dict()
         self.containers = dict()  # containers only used for pods
 
-        mod = importlib.import_module('k8sobjects')
+        mod = importlib.import_module("k8sobjects")
         class_label = K8S_RESOURCES[resource]
         self.resource_class = getattr(mod, class_label.capitalize(), None)
 
@@ -117,41 +117,44 @@ class K8sObject:
 
     @property
     def resource_data(self):
-        """ customized values for k8s objects """
+        """customized values for k8s objects"""
         return dict(
-            name=self.data['metadata']['name'],
-            name_space=self.data['metadata']['namespace'],
+            name=self.data["metadata"]["name"],
+            name_space=self.data["metadata"]["namespace"],
         )
 
     @property
     def uid(self):
-        if not hasattr(self, 'object_type'):
-            raise AttributeError('No object_type set! Dont use K8sObject itself!')
+        if not hasattr(self, "object_type"):
+            raise AttributeError("No object_type set! Dont use K8sObject itself!")
         elif not self.name:
-            raise AttributeError('No name set for K8sObject.uid! [%s] name_space: %s, name: %s'
-                                 % (self.object_type, self.name_space, self.name))
+            raise AttributeError(
+                "No name set for K8sObject.uid! [%s] name_space: %s, name: %s"
+                % (self.object_type, self.name_space, self.name)
+            )
 
         if self.name_space:
-            return self.object_type + '_' + self.name_space + '_' + self.name
-        return self.object_type + '_' + self.name
+            return self.object_type + "_" + self.name_space + "_" + self.name
+        return self.object_type + "_" + self.name
 
     @property
     def name(self):
-        name = self.data.get('metadata', {}).get('name')
+        name = self.data.get("metadata", {}).get("name")
         if not name:
-            raise Exception('Could not find name in metadata for resource %s' % self.resource)
+            raise Exception("Could not find name in metadata for resource %s" % self.resource)
         return name
 
     @property
     def name_space(self):
         from .component import Component
         from .node import Node
+
         if isinstance(self, Node) or isinstance(self, Component):
             return None
 
-        name_space = self.data.get('metadata', {}).get('namespace')
+        name_space = self.data.get("metadata", {}).get("namespace")
         if not name_space:
-            raise Exception('Could not find name_space for obj [%s] %s' % (self.resource, self.name))
+            raise Exception("Could not find name_space for obj [%s] %s" % (self.resource, self.name))
         return name_space
 
     def is_unsubmitted_web(self):
@@ -169,15 +172,17 @@ class K8sObject:
                 self.data,
                 sort_keys=True,
                 default=json_encoder,
-            ).encode('utf-8')
+            ).encode("utf-8")
         ).hexdigest()
 
     def get_zabbix_discovery_data(self):
-        return [{
-            "{#NAME}": self.name,
-            "{#NAMESPACE}": self.name_space,
-            "{#SLUG}": slugit(self.name_space, self.name, 40),
-        }]
+        return [
+            {
+                "{#NAME}": self.name,
+                "{#NAMESPACE}": self.name_space,
+                "{#SLUG}": slugit(self.name_space, self.name, 40),
+            }
+        ]
 
     def get_discovery_for_zabbix(self, discovery_data=None):
         if discovery_data is None:
@@ -185,10 +190,12 @@ class K8sObject:
 
         return ZabbixMetric(
             self.zabbix_host,
-            'check_kubernetesd[discover,%s]' % self.resource,
-            json.dumps({
-                'data': discovery_data,
-            })
+            "check_kubernetesd[discover,%s]" % self.resource,
+            json.dumps(
+                {
+                    "data": discovery_data,
+                }
+            ),
         )
 
     def get_zabbix_metrics(self):
