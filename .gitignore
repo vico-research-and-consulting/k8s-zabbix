@@ -10,3 +10,4 @@ venv/*
 *.log
 configd*.py
 dockerize.sh
+config_local.py
