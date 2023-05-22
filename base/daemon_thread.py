@@ -554,13 +554,13 @@ class CheckKubernetesDaemon:
             discovery_key = "check_kubernetesd[discover," + resource + "]"
             result = self.send_to_zabbix([ZabbixMetric(self.zabbix_host, discovery_key, discovery_data)])
             if result.failed > 0:
-                self.logger.error("failed to sent zabbix discovery: %s : >>>%s<<<" % (discovery_key, discovery_data))
+                self.logger.error("failed to send zabbix discovery: %s : >>>%s<<<" % (discovery_key, discovery_data))
             elif self.zabbix_debug:
                 self.logger.info("successfully sent zabbix discovery: %s  >>>>%s<<<" % (discovery_key, discovery_data))
         elif metric:
             result = self.send_to_zabbix(metric)
             if result.failed > 0:
-                self.logger.error("failed to sent mass zabbix discovery: >>>%s<<<" % metric)
+                self.logger.error("failed to send mass zabbix discovery: >>>%s<<<" % metric)
             elif self.zabbix_debug:
                 self.logger.info("successfully sent mass zabbix discovery: >>>%s<<<" % metric)
         else:
@@ -583,18 +583,19 @@ class CheckKubernetesDaemon:
         if self.zabbix_single_debug:
             for metric in metrics:
                 result = self.send_to_zabbix([metric])
+                self.logger.debug("Failed metrics: %s" % (result))
                 if result.failed > 0:
-                    self.logger.error("failed to sent zabbix items: %s", metric)
+                    self.logger.error("failed to send zabbix items: %s", metric)
                 else:
                     self.logger.info("successfully sent zabbix items: %s", metric)
         else:
             result = self.send_to_zabbix(metrics)
             if result.failed > 0:
                 self.logger.error(
-                    "failed to sent %s zabbix items, processed %s items [%s: %s]"
+                    "failed to send %s zabbix items, processed %s items [%s: %s]"
                     % (result.failed, result.processed, resource, obj.name if obj else "metrics")
                 )
-                self.logger.debug(metrics)
+                self.logger.debug("Result: %s" % (result))
             else:
                 self.logger.debug(
                     "successfully sent %s zabbix items [%s: %s]"
