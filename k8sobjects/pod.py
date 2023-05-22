@@ -95,7 +95,9 @@ class Pod(K8sObject):
                             terminated_state = container["state"]["terminated"]["reason"]
                         except (KeyError, TypeError):
                             terminated_state = ""
-                        if container_data and not status ["running", "waiting"] and terminated_state != "Completed":
+                        # There are three possible container states: Waiting, Running, and Terminated.
+                        # not status in ["waiting", "running"]
+                        if container_data and status == "terminated" and terminated_state != "Completed":
                             status_values.append(status)
 
                 if len(status_values) > 0:
