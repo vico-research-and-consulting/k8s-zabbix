@@ -64,6 +64,7 @@ class Pod(K8sObject):
             "status": "OK",
         }
         self.phase = self.data["status"]["phase"]
+        logger.error("STATUS_ALL: %s\n" % (self.data["status"]))
 
         if "container_statuses" in self.data["status"] and self.data["status"]["container_statuses"]:
             for container in self.data["status"]["container_statuses"]:
@@ -94,10 +95,11 @@ class Pod(K8sObject):
                             terminated_state = container["state"]["terminated"]["reason"]
                         except (KeyError, TypeError):
                             terminated_state = ""
-                        if container_data and status != "running" and terminated_state != "Completed":
+                        if container_data and status != "running" and status !="waiting" and terminated_state != "Completed":
                             status_values.append(status)
 
                 if len(status_values) > 0:
+                    logger.debug("STATUS_ERR: %s\n%s\n" % (status_values, container))
                     container_status[container_name]["status"] = "ERROR: " + (",".join(status_values))
                     pod_data["status"] = container_status[container_name]["status"]
                     data["ready"] = False
