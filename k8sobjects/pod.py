@@ -84,6 +84,8 @@ class Pod(K8sObject):
                 if container["ready"] is True:
                     container_status[container_name]["ready"] += 1
                     pod_data["ready"] += 1
+                # There are 5 possible Pod phases: Pending, Running, Succeeded, Failed, Unknown
+                # Only Failed and Unknown should throw an Error
                 elif self.phase not in ["Succeeded", "Running", "Pending"]:
                     container_status[container_name]["not_ready"] += 1
                     pod_data["not_ready"] += 1
