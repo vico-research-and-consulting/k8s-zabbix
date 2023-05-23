@@ -103,7 +103,7 @@ class Pod(K8sObject):
                             status_values.append(status)
 
                 if len(status_values) > 0:
-                    logger.debug("STATUS_ERR: %s\n%s\n" % (status_values, container))
+                    logger.debug("Pod STATUS_ERR: %s\n%s\n" % (status_values, container))
                     container_status[container_name]["status"] = "ERROR: " + (",".join(status_values))
                     pod_data["status"] = container_status[container_name]["status"]
                     data["ready"] = False
