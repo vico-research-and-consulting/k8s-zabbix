@@ -11,3 +11,6 @@ venv/*
 configd*.py
 dockerize.sh
 config_local.py
+config_c1e.py
+config_c1t.py
+
