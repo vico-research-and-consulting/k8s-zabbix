@@ -10,7 +10,7 @@ sentry_enabled = False
 sentry_dsn = ""
 
 zabbix_server = 'example.zabbix-server.com'
-zabbix_resources_exclude = ["components", "statefulsets", "daemonsets"]
+zabbix_resources_exclude = ["components", "statefulsets", "daemonsets", "pvcs"]
 zabbix_host = 'k8s-example-host'
 zabbix_debug = False
 zabbix_single_debug = False
