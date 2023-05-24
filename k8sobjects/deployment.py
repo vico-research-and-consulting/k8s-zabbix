@@ -25,7 +25,7 @@ class Deployment(K8sObject):
             if available_conds:
                 for cond in available_conds:
                     if cond["status"] != "True":
-                        logger.debug("Deployment STATUS_ERR: %s" % (self.data))
+                        logger.error("Deployment STATUS_ERR: %s" % (self.data))
                         failed_conds.append(cond["type"])
 
         data["failed cons"] = failed_conds
