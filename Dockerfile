@@ -25,6 +25,7 @@ RUN  apt-get update -y && \
 COPY --chown=nobody:users base /app/base
 COPY --chown=nobody:users k8sobjects /app/k8sobjects
 COPY --chown=nobody:users check_kubernetesd /app/check_kubernetesd
+COPY --chown=nobody:users config_default.ini /app/config_default.ini
 
 USER nobody
 WORKDIR /app
