@@ -26,6 +26,7 @@ COPY --chown=nobody:users base /app/base
 COPY --chown=nobody:users k8sobjects /app/k8sobjects
 COPY --chown=nobody:users check_kubernetesd /app/check_kubernetesd
 COPY --chown=nobody:users config_default.ini /app/config_default.ini
+COPY --chown=nobody:users config_default.py /app/config_default.py
 
 USER nobody
 WORKDIR /app

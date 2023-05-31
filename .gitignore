@@ -8,5 +8,5 @@ lib/__pycache__/*
 *.swp
 venv/*
 *.log
-/config*.py
-/config*.ini
+configd_*.ini
+configd_*.py
