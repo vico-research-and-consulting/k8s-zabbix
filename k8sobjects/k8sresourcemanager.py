@@ -24,12 +24,8 @@ class K8sResourceManager:
             logger.error('No Resource Class found for "%s"' % self.resource)
             return None
 
-        try:
-            new_obj = self.resource_class(data, self.resource, manager=self)
-            return self.add_obj(new_obj)
-        except Exception as e:
-            logger.fatal(f"Unable to add object by data : {e} - >>><{data}<<")
-            return None
+        new_obj = self.resource_class(data, self.resource, manager=self)
+        return self.add_obj(new_obj)
 
     def add_obj(self, new_obj: K8sObject) -> K8sObject | None:
 

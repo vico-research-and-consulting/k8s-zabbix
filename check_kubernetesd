@@ -19,7 +19,7 @@ import sentry_sdk
 from base.config import Configuration
 from base.daemon_thread import CheckKubernetesDaemon
 
-KNOWN_ACTIONS = ['discover', 'get']
+KNOWN_ACTIONS = ["discover", "get"]
 
 formatter_string = '%(asctime)s - %(threadName)s : {%(name)s:%(lineno)d} : %(levelname)s : %(message)s'
 formatter = logging.Formatter(formatter_string)
@@ -74,10 +74,10 @@ if __name__ == '__main__':
     if config.zabbix_debug:
         logger.info("starting with zabbix debug")
         config.zabbix_debug = True
-        log = logging.getLogger('pyzabbix')
+        log = logging.getLogger("pyzabbix")
         log.setLevel(logging.DEBUG)
     else:
-        log = logging.getLogger('pyzabbix')
+        log = logging.getLogger("pyzabbix")
         log.setLevel(logging.INFO)
 
     if config.debug:
@@ -94,6 +94,8 @@ if __name__ == '__main__':
                                         config.discovery_interval_slow, config.resend_data_interval_slow)
     daemons.append(mgmt_daemon)
 
+    
+
     daemons.append(
         CheckKubernetesDaemon(config,
                               # ['components', 'services', 'pvcs'],
@@ -104,8 +106,15 @@ if __name__ == '__main__':
         CheckKubernetesDaemon(config,
                               # ['deployments', 'statefulsets', 'daemonsets', 'pods', 'containers',
                               # 'ingresses', 'containers', 'pods'],
-                              ['deployments', 'statefulsets', "daemonsets", "pods"],
+                              ['statefulsets', "daemonsets"],
                               config.discovery_interval_slow, config.resend_data_interval_slow))
+
+    daemons.append(
+        CheckKubernetesDaemon(config,
+                              # ['deployments', 'statefulsets', 'daemonsets', 'pods', 'containers',
+                              # 'ingresses', 'containers', 'pods'],
+                              ['deployments', "pods"],
+                              config.discovery_interval_fast, config.resend_data_interval_fast))
 
     if config.debug_k8s_events:
         for daemon in daemons:
@@ -115,7 +124,6 @@ if __name__ == '__main__':
     def _signal_handler(signum, *args):
         mgmt_daemon.handler(signum)
 
-
     def stacktraces_and_terminate(signum, frame):
         print("#" * 80)
         print("# Threadump")
@@ -123,7 +131,6 @@ if __name__ == '__main__':
         print("#")
         print("#" * 80)
         sys.exit(1)
-
 
     signal.signal(signal.SIGQUIT, stacktraces_and_terminate)
     signal.signal(signal.SIGUSR1, _signal_handler)

@@ -42,17 +42,15 @@ def get_discovery_timeout_datetime() -> datetime:
 
 
 class KubernetesApi:
-    __shared_state = dict(core_v1=None,
-                          apps_v1=None,
-                          extensions_v1=None)
+    __shared_state = dict(core_v1=None, apps_v1=None, extensions_v1=None)
 
     def __init__(self, api_client: ApiClient):
         self.__dict__ = self.__shared_state
-        if not getattr(self, 'core_v1', None):
+        if not getattr(self, "core_v1", None):
             self.core_v1 = client.CoreV1Api(api_client)
-        if not getattr(self, 'apps_v1', None):
+        if not getattr(self, "apps_v1", None):
             self.apps_v1 = client.AppsV1Api(api_client)
-        if not getattr(self, 'exentsions_v1', None):
+        if not getattr(self, "exentsions_v1", None):
             self.extensions_v1 = client.ExtensionsV1beta1Api(api_client)
 
 
@@ -132,11 +130,11 @@ class CheckKubernetesDaemon:
 
     def handler(self, signum: int, *args: str) -> None:
         if signum in [signal.SIGTERM]:
-            self.logger.info('Signal handler called with signal %s... stopping (max %s seconds)' % (signum, 3))
+            self.logger.info("Signal handler called with signal %s... stopping (max %s seconds)" % (signum, 3))
             exit_flag.set()
             for thread in self.manage_threads:
                 thread.join(timeout=3)
-            self.logger.info('All threads exited... exit check_kubernetesd')
+            self.logger.info("All threads exited... exit check_kubernetesd")
             sys.exit(0)
         elif signum in [signal.SIGUSR1]:
             self.logger.info('=== Listing count of data hold in CheckKubernetesDaemon.data ===')
@@ -144,8 +142,7 @@ class CheckKubernetesDaemon:
                 for r, d in self.data.items():
                     for obj_name, obj_d in d.objects.items():
                         self.logger.info(
-                            f"resource={r}, last_sent_zabbix={obj_d.last_sent_zabbix}, " +
-                            f"last_sent_web={obj_d.last_sent_web}"
+                            f"resource={r}, last_sent_zabbix={obj_d.last_sent_zabbix}, " + f"last_sent_web={obj_d.last_sent_web}"
                         )
                 for resource_discovered, resource_discovered_time in self.discovery_sent.items():
                     self.logger.info(
@@ -169,8 +166,8 @@ class CheckKubernetesDaemon:
         for resource in self.resources:
             with self.thread_lock:
                 self.data.setdefault(resource, K8sResourceManager(resource, zabbix_host=self.zabbix_host))
-                if resource == 'pods':
-                    self.data.setdefault('containers', K8sResourceManager('containers'))
+                if resource == "pods":
+                    self.data.setdefault("containers", K8sResourceManager("containers"))
 
             if resource in ['containers', 'services']:
                 thread = TimedThread(resource, self.data_resend_interval, exit_flag,
@@ -233,12 +230,12 @@ class CheckKubernetesDaemon:
     def get_api_for_resource(self, resource: str) -> CoreV1Api | AppsV1Api | ExtensionsV1beta1Api:
         if resource in ['nodes', 'components', 'secrets', 'pods', 'services', 'pvcs']:
             api = self.core_v1
-        elif resource in ['deployments', 'daemonsets', 'statefulsets']:
+        elif resource in ["deployments", "daemonsets", "statefulsets"]:
             api = self.apps_v1
-        elif resource in ['ingresses']:
+        elif resource in ["ingresses"]:
             api = self.extensions_v1
         else:
-            raise AttributeError('No valid resource found: %s' % resource)
+            raise AttributeError("No valid resource found: %s" % resource)
         return api
 
     def get_web_api(self) -> WebApi:
@@ -270,7 +267,7 @@ class CheckKubernetesDaemon:
             elif resource == 'statefulsets':
                 for obj in w.stream(api.list_stateful_set_for_all_namespaces, **stream_named_arguments):
                     self.watch_event_handler(resource, obj)
-            elif resource == 'components':
+            elif resource == "components":
                 # The api does not support watching on component status
                 with self.thread_lock:
                     for obj in api.list_component_status(watch=False, **request_named_arguments).to_dict().get('items'):
@@ -323,7 +320,7 @@ class CheckKubernetesDaemon:
                 self.logger.error('Could not add watch_event_handler! No resource_class for "%s"' % resource)
                 return
 
-        if event_type.lower() == 'added':
+        if event_type.lower() == "added":
             with self.thread_lock:
                 resourced_obj = self.data[resource].add_obj_from_data(obj)
 
@@ -354,13 +351,13 @@ class CheckKubernetesDaemon:
 
         data_to_send = list()
 
-        if resource == 'services':
+        if resource == "services":
             num_services = 0
             num_ingress_services = 0
             with self.thread_lock:
                 for obj_uid, resourced_obj in self.data[resource].objects.items():
                     num_services += 1
-                    if resourced_obj.resource_data['is_ingress']:
+                    if resourced_obj.resource_data["is_ingress"]:
                         num_ingress_services += 1
 
             data_to_send.append(
@@ -371,45 +368,44 @@ class CheckKubernetesDaemon:
                              str(num_ingress_services)))
             self.send_data_to_zabbix(resource, None, data_to_send)
 
-        # TODO: disabled, rewrite later
-        # elif resource == 'containers':
-        #     # aggregate pod data to containers for each namespace
-        #     with self.thread_lock:
-        #         containers: dict[str, dict[str, dict[str, object]]] = dict()
-        #         for obj_uid, resourced_obj in self.data['pods'].objects.items():
-        #             if resourced_obj.name_space is None:
-        #                 continue
-        #             if not isinstance(resourced_obj, Pod):
-        #                 continue
-        #             ns = resourced_obj.name_space
-        #             containers.setdefault(resourced_obj.name_space, dict())
-        #
-        #             pod_data = resourced_obj.resource_data
-        #             pod_base_name = resourced_obj.base_name
-        #             try:
-        #                 container_status: dict[str, dict[str, object]] = json.loads(pod_data['container_status'])
-        #             except Exception as e:
-        #                 self.logger.error(e)
-        #                 continue
-        #
-        #             # aggregate container information
-        #             for container_name, container_data in container_status.items():
-        #                 containers[ns].setdefault(pod_base_name, dict())
-        #                 containers[ns][pod_base_name].setdefault(container_name, container_data)
-        #
-        #                 for k, v in containers[ns][pod_base_name][container_name].items():
-        #                     if isinstance(v, int):
-        #                         containers[ns][pod_base_name][container_name][k] += container_data[k]
-        #                     elif k == 'status' and container_data[k].startswith('ERROR'):
-        #                         containers[ns][pod_base_name][container_name][k] = container_data[k]
-        #
-        #         for ns, d1 in containers.items():
-        #             for pod_base_name, d2 in d1.items():
-        #                 for container_name, container_data in d2.items():
-        #                     data_to_send += get_container_zabbix_metrics(self.zabbix_host, ns, pod_base_name,
-        #                                                                  container_name, container_data)
-        #
-        #         self.send_data_to_zabbix(resource, None, data_to_send)
+
+        elif resource == "containers":
+            # aggregate pod data to containers for each namespace
+            with self.thread_lock:
+                containers = dict()
+                for obj_uid, resourced_obj in self.data["pods"].objects.items():
+                    ns = resourced_obj.name_space
+                    if ns not in containers:
+                        containers[ns] = dict()
+
+                    pod_data = resourced_obj.resource_data
+                    pod_base_name = resourced_obj.base_name
+                    try:
+                        container_status = json.loads(pod_data["container_status"])
+                    except Exception as e:
+                        self.logger.error(e)
+                        continue
+
+                    # aggregate container information
+                    for container_name, container_data in container_status.items():
+                        containers[ns].setdefault(pod_base_name, dict())
+                        containers[ns][pod_base_name].setdefault(container_name, container_data)
+
+                        for k, v in containers[ns][pod_base_name][container_name].items():
+                            if isinstance(v, int):
+                                containers[ns][pod_base_name][container_name][k] += container_data[k]
+                            elif k == "status" and container_data[k].startswith("ERROR"):
+                                containers[ns][pod_base_name][container_name][k] = container_data[k]
+
+                for ns, d1 in containers.items():
+                    for pod_base_name, d2 in d1.items():
+                        for container_name, container_data in d2.items():
+                            data_to_send += get_container_zabbix_metrics(
+                                self.zabbix_host, ns, pod_base_name, container_name, container_data
+                            )
+
+                self.send_data_to_zabbix(resource, None, data_to_send)
+
 
     def resend_data(self, resource: str) -> None:
 
@@ -426,8 +422,10 @@ class CheckKubernetesDaemon:
                     if resource in self.discovery_sent:
                         zabbix_send = True
                     elif obj.last_sent_zabbix < (datetime.now() - timedelta(seconds=self.data_resend_interval)):
-                        self.logger.debug("resend zabbix : %s  - %s/%s data because its outdated" % (
-                            resource, obj.name_space, obj.name))
+                        self.logger.debug(
+                            "resend zabbix : %s  - %s/%s data because its outdated"
+                            % (resource, obj.name_space, obj.name)
+                        )
                         zabbix_send = True
                     if zabbix_send:
                         metrics += obj.get_zabbix_metrics()
@@ -436,8 +434,9 @@ class CheckKubernetesDaemon:
                 if len(metrics) > 0:
                     if resource not in self.discovery_sent:
                         self.logger.debug(
-                            'skipping resend_data zabbix , discovery for %s - %s/%s not sent yet!' % (
-                                resource, obj.name_space, obj.name))
+                            "skipping resend_data zabbix , discovery for %s - %s/%s not sent yet!"
+                            % (resource, obj.name_space, obj.name)
+                        )
                     else:
                         self.send_data_to_zabbix(resource, metrics=metrics)
 
@@ -445,14 +444,14 @@ class CheckKubernetesDaemon:
                 for obj_uid, obj in self.data[resource].objects.items():
                     if obj.is_dirty_web:
                         if obj.is_unsubmitted_web():
-                            self.send_to_web_api(resource, obj, 'ADDED')
+                            self.send_to_web_api(resource, obj, "ADDED")
                         else:
-                            self.send_to_web_api(resource, obj, 'MODIFIED')
+                            self.send_to_web_api(resource, obj, "MODIFIED")
                     else:
                         if obj.is_unsubmitted_web():
-                            self.send_to_web_api(resource, obj, 'ADDED')
+                            self.send_to_web_api(resource, obj, "ADDED")
                         elif obj.last_sent_web < (datetime.now() - timedelta(seconds=self.data_resend_interval)):
-                            self.send_to_web_api(resource, obj, 'MODIFIED')
+                            self.send_to_web_api(resource, obj, "MODIFIED")
                             self.logger.debug("resend web : %s/%s data because its outdated" % (resource, obj.name))
                     obj.last_sent_web = datetime.now()
                     obj.is_dirty_web = False
@@ -495,8 +494,10 @@ class CheckKubernetesDaemon:
                     resourced_obj.last_sent_zabbix = datetime.now()
                     resourced_obj.is_dirty_zabbix = False
                 else:
-                    self.logger.debug('obj >>>type: %s, name: %s/%s<<< not sending to zabbix! rate limited (%is)' % (
-                        resource, resourced_obj.name_space, resourced_obj.name, self.rate_limit_seconds))
+                    self.logger.debug(
+                        "obj >>>type: %s, name: %s/%s<<< not sending to zabbix! rate limited (%is)"
+                        % (resource, resourced_obj.name_space, resourced_obj.name, self.rate_limit_seconds)
+                    )
                     resourced_obj.is_dirty_zabbix = True
 
             if send_web:
@@ -507,8 +508,10 @@ class CheckKubernetesDaemon:
                         # only set dirty False if send_to_web_api worked
                         resourced_obj.is_dirty_web = False
                 else:
-                    self.logger.debug('obj >>>type: %s, name: %s/%s<<< not sending to web! rate limited (%is)' % (
-                        resource, resourced_obj.name_space, resourced_obj.name, self.rate_limit_seconds))
+                    self.logger.debug(
+                        "obj >>>type: %s, name: %s/%s<<< not sending to web! rate limited (%is)"
+                        % (resource, resourced_obj.name_space, resourced_obj.name, self.rate_limit_seconds)
+                    )
                     resourced_obj.is_dirty_web = True
 
     def send_heartbeat_info(self, resource: str) -> None:
@@ -554,17 +557,17 @@ class CheckKubernetesDaemon:
             discovery_key = 'check_kubernetesd[discover,' + resource + ']'
             result = self.send_to_zabbix([ZabbixMetric(host=self.zabbix_host, key=discovery_key, value=discovery_data)])
             if result.failed > 0:
-                self.logger.error("failed to sent zabbix discovery: %s : >>>%s<<<" % (discovery_key, discovery_data))
+                self.logger.error("failed to send zabbix discovery: %s : >>>%s<<<" % (discovery_key, discovery_data))
             elif self.zabbix_debug:
                 self.logger.info("successfully sent zabbix discovery: %s  >>>>%s<<<" % (discovery_key, discovery_data))
         elif metric:
             result = self.send_to_zabbix([metric])
             if result.failed > 0:
-                self.logger.error("failed to sent mass zabbix discovery: >>>%s<<<" % metric)
+                self.logger.error("failed to send mass zabbix discovery: >>>%s<<<" % metric)
             elif self.zabbix_debug:
                 self.logger.info("successfully sent mass zabbix discovery: >>>%s<<<" % metric)
         else:
-            self.logger.warning('No obj or metrics found for send_discovery_to_zabbix [%s]' % resource)
+            self.logger.warning("No obj or metrics found for send_discovery_to_zabbix [%s]" % resource)
 
     def send_data_to_zabbix(self, resource: str, obj: K8sObject = None,
                             metrics: list[ZabbixMetric] | None = None) -> None:
@@ -577,28 +580,33 @@ class CheckKubernetesDaemon:
             metrics = obj.get_zabbix_metrics()
 
         if len(metrics) == 0 and obj:
-            self.logger.debug('No zabbix metrics to send for %s: %s' % (obj.uid, metrics))
+            self.logger.debug("No zabbix metrics to send for %s: %s" % (obj.uid, metrics))
             return
         elif len(metrics) == 0:
-            self.logger.debug('No zabbix metrics or no obj found for [%s]' % resource)
+            self.logger.debug("No zabbix metrics or no obj found for [%s]" % resource)
             return
 
         if self.zabbix_single_debug:
             for metric in metrics:
                 result = self.send_to_zabbix([metric])
+                self.logger.debug("Failed metrics: %s" % (result))
                 if result.failed > 0:
-                    self.logger.error("failed to sent zabbix items: %s", metric)
+                    self.logger.error("failed to send zabbix items: %s", metric)
                 else:
                     self.logger.info("successfully sent zabbix items: %s", metric)
         else:
             result = self.send_to_zabbix(metrics)
             if result.failed > 0:
-                self.logger.error("failed to sent %s zabbix items, processed %s items [%s: %s]"
-                                  % (result.failed, result.processed, resource, obj.name if obj else 'metrics'))
-                self.logger.debug(metrics)
+                self.logger.error(
+                    "failed to send %s zabbix items, processed %s items [%s: %s]"
+                    % (result.failed, result.processed, resource, obj.name if obj else "metrics")
+                )
+                self.logger.debug("Result: %s" % (result))
             else:
-                self.logger.debug("successfully sent %s zabbix items [%s: %s]" % (
-                    len(metrics), resource, obj.name if obj else 'metrics'))
+                self.logger.debug(
+                    "successfully sent %s zabbix items [%s: %s]"
+                    % (len(metrics), resource, obj.name if obj else "metrics")
+                )
 
     def send_to_web_api(self, resource: str, obj: K8sObject, action: str) -> None:
         if resource not in self.web_api_resources:
@@ -607,7 +615,7 @@ class CheckKubernetesDaemon:
         if self.web_api_enable:
             api = self.get_web_api()
             data_to_send = obj.resource_data
-            data_to_send['cluster'] = self.web_api_cluster
+            data_to_send["cluster"] = self.web_api_cluster
 
             api.send_data(resource, data_to_send, action)
         else:

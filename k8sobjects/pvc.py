@@ -23,26 +23,25 @@ def _get_pvc_data_for_node(api: CoreV1Api, node: str, pvc_volumes: list[K8sObjec
     header_params['Accept'] = api.api_client.select_header_accept(
         ['application/json', 'application/yaml', 'application/vnd.kubernetes.protobuf', 'application/json;stream=watch',
          'application/vnd.kubernetes.protobuf;stream=watch'])  # noqa: E501
-
-    auth_settings = ['BearerToken']  # noqa: E501
-    path_params = {'node': node}
+    auth_settings = ["BearerToken"]  # noqa: E501
+    path_params = {"node": node}
     logger.debug(f"Getting pvc infos for node {node}")
     ret = api.api_client.call_api(
-        '/api/v1/nodes/{node}/proxy/stats/summary',
-        'GET',
+        "/api/v1/nodes/{node}/proxy/stats/summary",
+        "GET",
         path_params,
         query_params,
         header_params,
         body=body_params,
         post_params=form_params,
         files=local_var_files,
-        response_type='str',  # noqa: E501
+        response_type="str",  # noqa: E501
         auth_settings=auth_settings,
         async_req=False,
         _return_http_data_only=True,
         _preload_content=False,
         _request_timeout=timeout_seconds,
-        collection_formats={}
+        collection_formats={},
     )
 
     loaded_json = json.loads(ret.data)
@@ -106,7 +105,7 @@ def get_pvc_volumes_for_all_nodes(api: CoreV1Api, timeout: int, namespace_exclud
 
 
 class Pvc(K8sObject):
-    object_type = 'pvc'
+    object_type = "pvc"
 
     @property
     def resource_data(self):
@@ -115,7 +114,7 @@ class Pvc(K8sObject):
 
     def get_zabbix_metrics(self):
         data_to_send = list()
-        for key, value in self.data['item'].items():
+        for key, value in self.data["item"].items():
             data_to_send.append(
                 ZabbixMetric(
                     self.zabbix_host,

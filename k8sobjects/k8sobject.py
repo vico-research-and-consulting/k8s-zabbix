@@ -1,5 +1,6 @@
 import datetime
 import hashlib
+import importlib
 import json
 import logging
 import re
@@ -13,17 +14,17 @@ from pyzabbix import ZabbixMetric
 logger = logging.getLogger(__file__)
 
 K8S_RESOURCES = dict(
-    nodes='node',
-    components='component',
-    services='service',
-    deployments='deployment',
-    statefulsets='statefulset',
-    daemonsets='daemonset',
-    pods='pod',
-    containers='container',
-    secrets='secret',
-    ingresses='ingress',
-    pvcs='pvc'
+    nodes="node",
+    components="component",
+    services="service",
+    deployments="deployment",
+    statefulsets="statefulset",
+    daemonsets="daemonset",
+    pods="pod",
+    containers="container",
+    secrets="secret",
+    ingresses="ingress",
+    pvcs="pvc",
 )
 
 INITIAL_DATE = datetime.datetime(2000, 1, 1, 0, 0)
@@ -56,7 +57,7 @@ def transform_value(value: str) -> str:
 
 def slugit(name_space: str, name: str, maxlen: int) -> str:
     if name_space:
-        slug = name_space + '/' + name
+        slug = name_space + "/" + name
     else:
         slug = name
 
@@ -123,12 +124,14 @@ class K8sObject:
         if not hasattr(self, 'object_type'):
             raise AttributeError('No object_type set! Dont use K8sObject itself!')
         elif not self.name:
-            raise AttributeError('No name set for K8sObject.uid! [%s] name_space: %s, name: %s'
-                                 % (self.object_type, self.name_space, self.name))
+            raise AttributeError(
+                "No name set for K8sObject.uid! [%s] name_space: %s, name: %s"
+                % (self.object_type, self.name_space, self.name)
+            )
 
         if self.name_space:
-            return self.object_type + '_' + self.name_space + '_' + self.name
-        return self.object_type + '_' + self.name
+            return self.object_type + "_" + self.name_space + "_" + self.name
+        return self.object_type + "_" + self.name
 
     @property
     def name(self) -> str:
@@ -145,9 +148,9 @@ class K8sObject:
         if isinstance(self, Node) or isinstance(self, Component):
             return None
 
-        name_space = self.data.get('metadata', {}).get('namespace')
+        name_space = self.data.get("metadata", {}).get("namespace")
         if not name_space:
-            raise Exception('Could not find name_space for obj [%s] %s' % (self.resource, self.name))
+            raise Exception("Could not find name_space for obj [%s] %s" % (self.resource, self.name))
         return name_space
 
     def is_unsubmitted_web(self) -> bool:
@@ -172,10 +175,12 @@ class K8sObject:
 
         return ZabbixMetric(
             self.zabbix_host,
-            'check_kubernetesd[discover,%s]' % self.resource,
-            json.dumps({
-                'data': discovery_data,
-            })
+            "check_kubernetesd[discover,%s]" % self.resource,
+            json.dumps(
+                {
+                    "data": discovery_data,
+                }
+            ),
         )
 
     def get_zabbix_metrics(self) -> list[ZabbixMetric]:

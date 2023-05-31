@@ -8,24 +8,25 @@ logger = logging.getLogger(__file__)
 
 
 class Deployment(K8sObject):
-    object_type = 'deployment'
+    object_type = "deployment"
 
     @property
     def resource_data(self):
         data = super().resource_data
 
-        for status_type in self.data['status']:
-            if status_type == 'conditions':
+        for status_type in self.data["status"]:
+            if status_type == "conditions":
                 continue
-            data.update({status_type: transform_value(self.data['status'][status_type])})
+            data.update({status_type: transform_value(self.data["status"][status_type])})
 
         failed_conds = []
-        if self.data['status']['conditions']:
-            available_conds = [x for x in self.data['status']['conditions'] if x['type'].lower() == "available"]
+        if self.data["status"]["conditions"]:
+            available_conds = [x for x in self.data["status"]["conditions"] if x["type"].lower() == "available"]
             if available_conds:
                 for cond in available_conds:
-                    if cond['status'] != 'True':
-                        failed_conds.append(cond['type'])
+                    if cond["status"] != "True":
+                        logger.debug("Deployment STATUS_ERR: %s" % (self.data))
+                        failed_conds.append(cond["type"])
 
             if len(failed_conds) > 0:
                 data['available_status'] = 'ERROR: ' + (','.join(failed_conds))
@@ -38,8 +39,8 @@ class Deployment(K8sObject):
     def get_zabbix_metrics(self):
         data_to_send = []
 
-        for status_type in self.data['status']:
-            if status_type == 'conditions':
+        for status_type in self.data["status"]:
+            if status_type == "conditions":
                 continue
 
             data_to_send.append(ZabbixMetric(

@@ -59,7 +59,7 @@ class TimedThread(threading.Thread):
                 )
                 time.sleep(self.cycle_interval_seconds)
 
-        self.logger.info('terminating looprun thread %s.%s' % (self.resource, self.daemon_method))
+        self.logger.info("terminating looprun thread %s.%s" % (self.resource, self.daemon_method))
 
     def run_requests(self, first_run: bool = False) -> None:
         if first_run:

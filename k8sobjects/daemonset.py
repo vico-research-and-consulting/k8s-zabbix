@@ -21,7 +21,7 @@ logger = logging.getLogger(__file__)
 #             'updated_number_scheduled': 8}}
 
 class Daemonset(K8sObject):
-    object_type = 'daemonset'
+    object_type = "daemonset"
 
     @property
     def resource_data(self):

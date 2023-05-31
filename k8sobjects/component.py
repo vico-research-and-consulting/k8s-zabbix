@@ -38,7 +38,6 @@ class Component(K8sObject):
 
     def get_zabbix_metrics(self):
         data_to_send = list()
-
         data_to_send.append(ZabbixMetric(
             self.zabbix_host,
             'check_kubernetesd[get,components,%s,available_status]' % self.name,

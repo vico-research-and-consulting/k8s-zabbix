@@ -10,3 +10,4 @@ venv/*
 *.log
 configd_*.ini
 configd_*.py
+dockerize.sh

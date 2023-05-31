@@ -8,7 +8,7 @@ logger = logging.getLogger(__file__)
 
 
 class Statefulset(K8sObject):
-    object_type = 'statefulset'
+    object_type = "statefulset"
 
     @property
     def resource_data(self):
