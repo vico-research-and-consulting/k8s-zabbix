@@ -6,7 +6,7 @@ from pprint import pformat
 
 from pyzabbix import ZabbixMetric
 
-from k8sobjects import K8sObject
+from k8sobjects import K8sObject, transform_value
 
 logger = logging.getLogger(__file__)
 
@@ -60,6 +60,22 @@ class Pod(K8sObject):
     def get_zabbix_metrics(self):
         data = self.resource_data
         data_to_send = list()
+
+        sys.stderr.write("STATUS_METRICS data: %s\n" % (data))
+
+        for status_type in self.data["status"]:
+            if status_type in self.resource_data: 
+                data_to_send.append(ZabbixMetric(
+                    self.zabbix_host,
+                    'check_kubernetesd[get,pods,%s,%s,%s]' % (self.name_space, self.name, status_type),
+                    transform_value(self.resource_data[status_type]))
+                )
+        if "available_status" in self.resource_data:
+            data_to_send.append(ZabbixMetric(
+                self.zabbix_host,
+                'check_kubernetesd[get,pods,%s,%s,available_status]' % (self.name_space, self.name),
+                self.resource_data['available_status']))
+
         return data_to_send
 
 
@@ -152,3 +168,4 @@ class Pod(K8sObject):
                 }
             ),
         )
+
