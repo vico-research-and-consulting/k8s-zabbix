@@ -8,7 +8,7 @@ from pyzabbix import ZabbixMetric
 
 from k8sobjects import K8sObject, transform_value
 
-logger = logging.getLogger(__file__)
+logger = logging.getLogger("k8s-zabbix")
 
 
 class Pod(K8sObject):
@@ -41,14 +41,13 @@ class Pod(K8sObject):
         self.base_name = name
         return name
 
-
     def get_zabbix_discovery_data(self) -> list[dict[str, str]]:
         # Main Methode
         data = super().get_zabbix_discovery_data()
         data[0]['{#KIND}'] = self.kind
         for container in self.containers:
-            data += [ 
-                { 
+            data += [
+                {
                     "{#NAMESPACE}": self.name_space,
                     "{#NAME}": self.base_name,
                     "{#CONTAINER}": container,
@@ -56,11 +55,16 @@ class Pod(K8sObject):
             ]
         return data
 
-
     def get_zabbix_metrics(self):
         data_to_send = list()
 
-        sys.stderr.write("STATUS_STATUS %s" %(self.data["status"]))
+        self.data["status"].pop('conditions', None)
+        rd = self.resource_data
+
+        logger.debug('POD Data')
+        sys.stderr.write('Loglevel: %s' % logger.getEffectiveLevel())
+
+        sys.stderr.write("STATUS_STATUS %s" % (self.data["status"]))
         for status_type in self.data["status"]:
 
             if status_type == "conditions":
@@ -69,26 +73,22 @@ class Pod(K8sObject):
             data_to_send.append(ZabbixMetric(
                 self.zabbix_host,
                 'check_kubernetesd[get,pod,%s,%s,%s]' % (self.name_space, self.name, status_type),
-                transform_value(self.resource_data[status_type]))
+                transform_value(rd[status_type]))
             )
 
-#        data_to_send.append(ZabbixMetric(
-#            self.zabbix_host,
-#            'check_kubernetesd[get,pod,%s,%s,available_status]' % (self.name_space, self.name),
-#            self.resource_data['available_status']))
+        #        data_to_send.append(ZabbixMetric(
+        #            self.zabbix_host,
+        #            'check_kubernetesd[get,pod,%s,%s,available_status]' % (self.name_space, self.name),
+        #            self.resource_data['available_status']))
 
+        #         if "available_status" in self.data:
+        #             data_to_send.append(ZabbixMetric(
+        #                 self.zabbix_host,
+        #                 'check_kubernetesd[get,pods,%s,%s,available_status]' % (self.name_space, self.name),
+        #                 data['available_status']))
 
-
-#         if "available_status" in self.data:
-#             data_to_send.append(ZabbixMetric(
-#                 self.zabbix_host,
-#                 'check_kubernetesd[get,pods,%s,%s,available_status]' % (self.name_space, self.name),
-#                 data['available_status']))
-
-        
         sys.stderr.write("STATUS_METRICS data_to_send: %s\n" % (data_to_send))
         return data_to_send
-
 
     @property
     def resource_data(self):
@@ -153,9 +153,6 @@ class Pod(K8sObject):
         logger.debug("STATUS_POD: data:%s\n" % (data))
         return data
 
-
-
-
     @property
     def containers(self):
         containers = {}
@@ -178,4 +175,3 @@ class Pod(K8sObject):
                 }
             ),
         )
-

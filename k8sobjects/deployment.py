@@ -4,7 +4,7 @@ from pyzabbix import ZabbixMetric
 
 from .k8sobject import K8sObject, transform_value
 
-logger = logging.getLogger(__file__)
+logger = logging.getLogger("k8s-zabbix")
 
 
 class Deployment(K8sObject):

@@ -19,7 +19,7 @@ class ClusterAccessConfigType(Enum):
     TOKEN = "token"
 
 
-logger = logging.getLogger(__file__)
+logger = logging.getLogger("k8s-zabbix")
 
 
 @dataclass(order=True)

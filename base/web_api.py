@@ -4,7 +4,7 @@ import requests
 
 from k8sobjects.k8sobject import K8S_RESOURCES
 
-logger = logging.getLogger(__file__)
+logger = logging.getLogger("k8s-zabbix")
 
 
 class WebApi:

@@ -3,7 +3,7 @@ import logging
 
 from k8sobjects.k8sobject import K8S_RESOURCES, K8sObject
 
-logger = logging.getLogger(__file__)
+logger = logging.getLogger("k8s-zabbix")
 
 
 class K8sResourceManager:

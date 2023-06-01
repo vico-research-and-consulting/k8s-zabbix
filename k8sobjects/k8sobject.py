@@ -11,7 +11,7 @@ if TYPE_CHECKING:
 
 from pyzabbix import ZabbixMetric
 
-logger = logging.getLogger(__file__)
+logger = logging.getLogger("k8s-zabbix")
 
 K8S_RESOURCES = dict(
     nodes="node",

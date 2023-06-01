@@ -27,7 +27,7 @@ class TimedThread(threading.Thread):
         self.delay_first_run = delay_first_run
         self.delay_first_run_seconds = delay_first_run_seconds
         threading.Thread.__init__(self, target=self.run)
-        self.logger = logging.getLogger(__file__)
+        self.logger = logging.getLogger("k8s-zabbix")
 
     def stop(self) -> None:
         self.logger.info('OK: Thread "' + self.resource + '" is stopping"')

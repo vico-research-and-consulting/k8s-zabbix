@@ -65,7 +65,7 @@ class CheckKubernetesDaemon:
                  ):
         self.manage_threads: list[TimedThread | WatcherThread] = []
         self.config = config
-        self.logger = logging.getLogger(__file__)
+        self.logger = logging.getLogger("k8s-zabbix")
         self.discovery_interval = int(discovery_interval)
         self.data_resend_interval = int(data_resend_interval)
 
@@ -368,7 +368,6 @@ class CheckKubernetesDaemon:
                              str(num_ingress_services)))
             self.send_data_to_zabbix(resource, None, data_to_send)
 
-
         elif resource == "containers":
             # aggregate pod data to containers for each namespace
             with self.thread_lock:
@@ -405,7 +404,6 @@ class CheckKubernetesDaemon:
                             )
 
                 self.send_data_to_zabbix(resource, None, data_to_send)
-
 
     def resend_data(self, resource: str) -> None:
 

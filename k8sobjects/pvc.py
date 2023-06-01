@@ -9,7 +9,7 @@ from . import get_node_names
 from .k8sobject import K8sObject, MetadataObjectType, ObjectDataType
 from .k8sresourcemanager import K8sResourceManager
 
-logger = logging.getLogger(__file__)
+logger = logging.getLogger("k8s-zabbix")
 
 
 def _get_pvc_data_for_node(api: CoreV1Api, node: str, pvc_volumes: list[K8sObject], timeout_seconds: int,
