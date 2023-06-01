@@ -40,36 +40,6 @@ class Pod(K8sObject):
                     logger.debug("STATUS_NAME kind:%s\ngenerate_name:%s\ndata:%s\n" % (self.kind, generate_name, pformat(self.data, indent=2)))
         return name
 
-    def get_zabbix_discovery_data(self) -> list[dict[str, str]]:
-        # Main Methode
-        data = super().get_zabbix_discovery_data()
-        data[0]['{#KIND}'] = self.kind
-        for container in self.containers:
-            data += [
-                {
-                    "{#NAMESPACE}": self.name_space,
-                    "{#NAME}": self.base_name,
-                    "{#CONTAINER}": container,
-                }
-            ]
-        return data
-
-    def get_zabbix_metrics(self):
-        data_to_send = list()
-
-        self.data["status"].pop('conditions', None)
-        rd = self.resource_data
-
-        for status_type in rd["pod_data"]:
-
-            data_to_send.append(ZabbixMetric(
-                self.zabbix_host,
-                'check_kubernetesd[get,pod,%s,%s,%s]' % (self.name_space, self.name, status_type),
-                transform_value(rd["pod_data"][status_type]))
-            )
-
-        return data_to_send
-
     @property
     def resource_data(self):
 
@@ -85,7 +55,7 @@ class Pod(K8sObject):
         }
         self.phase = self.data["status"]["phase"]
 
-        if "container_statuses" in self.data["status"] and self.data["status"]["container_statuses"]:
+        if "container_statuses" in self.data["status"] and len(self.data["status"]["container_statuses"]) > 0:
             for container in self.data["status"]["container_statuses"]:
                 status_values = []
                 container_name = container["name"]
@@ -112,14 +82,12 @@ class Pod(K8sObject):
 
                 if container["state"] and len(container["state"]) > 0:
                     for status, container_data in container["state"].items():
-                        terminated_state = ""
                         try:
                             terminated_state = container["state"]["terminated"]["reason"]
-                        except:
-                            pass
-                        # There are three possible container states: Waiting, Running, and Terminated.
-                        # not status in ["waiting", "running"]
-                        if container_data and status == "terminated" and terminated_state != "Completed":
+                        except Exception:
+                            terminated_state = ""
+
+                        if container_data is not None and status == "terminated" and terminated_state != "Completed":
                             status_values.append(status)
 
                 if len(status_values) > 0:
@@ -128,7 +96,7 @@ class Pod(K8sObject):
                     pod_data["status"] = container_status[container_name]["status"]
                     data["ready"] = False
 
-        # data["container_status"] = json.dumps(container_status)
+        data["container_status"] = container_status
         data["pod_data"] = pod_data
         return data
 
@@ -140,6 +108,35 @@ class Pod(K8sObject):
             containers[container["name"]] += 1
         return containers
 
+    def get_zabbix_discovery_data(self) -> list[dict[str, str]]:
+        # Main Methode
+        data = super().get_zabbix_discovery_data()
+        data[0]['{#KIND}'] = self.kind
+        for container in self.containers:
+            data += [
+                {
+                    "{#NAMESPACE}": self.name_space,
+                    "{#NAME}": self.name,
+                    "{#CONTAINER}": container,
+                }
+            ]
+        return data
+
+    def get_zabbix_metrics(self):
+        data_to_send = list()
+
+        self.data["status"].pop('conditions', None)
+        rd = self.resource_data
+
+        for status_type in rd["pod_data"]:
+            data_to_send.append(ZabbixMetric(
+                self.zabbix_host,
+                'check_kubernetesd[get,pods,%s,%s,%s]' % (self.name_space, self.name, status_type),
+                transform_value(rd["pod_data"][status_type]))
+            )
+
+        return data_to_send
+
     def get_discovery_for_zabbix(self, discovery_data=None):
         # Alte Methode
         if discovery_data is None:
@@ -147,7 +144,7 @@ class Pod(K8sObject):
 
         return ZabbixMetric(
             self.zabbix_host,
-            "check_kubernetesd[discover,containers]",
+            "check_kubernetesd[discover,pods]",
             json.dumps(
                 {
                     "data": discovery_data,
