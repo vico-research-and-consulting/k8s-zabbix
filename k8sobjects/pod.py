@@ -55,7 +55,7 @@ class Pod(K8sObject):
         }
         self.phase = self.data["status"]["phase"]
 
-        if "container_statuses" in self.data["status"] and len(self.data["status"]["container_statuses"]) > 0:
+        if "container_statuses" in self.data["status"] and self.data["status"]["container_statuses"] is not None:
             for container in self.data["status"]["container_statuses"]:
                 status_values = []
                 container_name = container["name"]
