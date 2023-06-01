@@ -37,8 +37,7 @@ class Pod(K8sObject):
                 try:
                     name = re.sub(r'-$', '', generate_name)
                 except Exception as e:
-                    sys.stderr.write("STATUS_NAME kind:%s\ngenerate_name:%s\ndata:%s\n" % (self.kind, generate_name, pformat(self.data, indent=2)))
-        self.base_name = name
+                    logger.debug("STATUS_NAME kind:%s\ngenerate_name:%s\ndata:%s\n" % (self.kind, generate_name, pformat(self.data, indent=2)))
         return name
 
     def get_zabbix_discovery_data(self) -> list[dict[str, str]]:
@@ -61,33 +60,14 @@ class Pod(K8sObject):
         self.data["status"].pop('conditions', None)
         rd = self.resource_data
 
-        logger.debug('POD Data')
-        sys.stderr.write('Loglevel: %s' % logger.getEffectiveLevel())
-
-        sys.stderr.write("STATUS_STATUS %s" % (self.data["status"]))
-        for status_type in self.data["status"]:
-
-            if status_type == "conditions":
-                continue
+        for status_type in rd["pod_data"]:
 
             data_to_send.append(ZabbixMetric(
                 self.zabbix_host,
                 'check_kubernetesd[get,pod,%s,%s,%s]' % (self.name_space, self.name, status_type),
-                transform_value(rd[status_type]))
+                transform_value(rd["pod_data"][status_type]))
             )
 
-        #        data_to_send.append(ZabbixMetric(
-        #            self.zabbix_host,
-        #            'check_kubernetesd[get,pod,%s,%s,available_status]' % (self.name_space, self.name),
-        #            self.resource_data['available_status']))
-
-        #         if "available_status" in self.data:
-        #             data_to_send.append(ZabbixMetric(
-        #                 self.zabbix_host,
-        #                 'check_kubernetesd[get,pods,%s,%s,available_status]' % (self.name_space, self.name),
-        #                 data['available_status']))
-
-        sys.stderr.write("STATUS_METRICS data_to_send: %s\n" % (data_to_send))
         return data_to_send
 
     @property
@@ -148,9 +128,8 @@ class Pod(K8sObject):
                     pod_data["status"] = container_status[container_name]["status"]
                     data["ready"] = False
 
-        data["container_status"] = json.dumps(container_status)
-        data["pod_data"] = json.dumps(pod_data)
-        logger.debug("STATUS_POD: data:%s\n" % (data))
+        # data["container_status"] = json.dumps(container_status)
+        data["pod_data"] = pod_data
         return data
 
     @property

@@ -25,6 +25,7 @@ formatter_string = '%(asctime)s - %(threadName)s : {%(name)s:%(lineno)d} : %(lev
 
 logger = logging.getLogger("k8s-zabbix")
 
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         description='Zabbix monitoring daemon for kubernetes'
@@ -75,7 +76,6 @@ if __name__ == '__main__':
         log.setLevel(logging.INFO)
 
     if config.debug:
-        # stream.setLevel(logging.DEBUG)
         logger.setLevel(logging.DEBUG)
     else:
         logger.setLevel(logging.INFO)
@@ -89,7 +89,6 @@ if __name__ == '__main__':
     if config.zabbix_debug:
         logger.info("starting with zabbix debug")
 
-
     daemons: List[CheckKubernetesDaemon] = list()
 
     mgmt_daemon = CheckKubernetesDaemon(config,
@@ -97,27 +96,24 @@ if __name__ == '__main__':
                                         config.discovery_interval_slow, config.resend_data_interval_slow)
     daemons.append(mgmt_daemon)
 
-    
-    #
-    # daemons.append(
-    #     CheckKubernetesDaemon(config,
-    #                           # ['components', 'services', 'pvcs'],
-    #                           ['components', 'pvcs'],
-    #                           config.discovery_interval_slow, config.resend_data_interval_fast))
-    #
-    # daemons.append(
-    #     CheckKubernetesDaemon(config,
-    #                           # ['deployments', 'statefulsets', 'daemonsets', 'pods', 'containers',
-    #                           # 'ingresses', 'containers', 'pods'],
-    #                           ['statefulsets', "daemonsets"],
-    #                           config.discovery_interval_slow, config.resend_data_interval_slow))
+    daemons.append(
+        CheckKubernetesDaemon(config,
+                              # ['components', 'services', 'pvcs'],
+                              ['components', 'pvcs'],
+                              config.discovery_interval_slow, config.resend_data_interval_fast))
 
     daemons.append(
         CheckKubernetesDaemon(config,
                               # ['deployments', 'statefulsets', 'daemonsets', 'pods', 'containers',
                               # 'ingresses', 'containers', 'pods'],
-                              # ['deployments', "pods"],
-                              ["pods"],
+                              ['statefulsets', "daemonsets"],
+                              config.discovery_interval_slow, config.resend_data_interval_slow))
+
+    daemons.append(
+        CheckKubernetesDaemon(config,
+                              # ['deployments', 'statefulsets', 'daemonsets', 'pods', 'containers',
+                              # 'ingresses', 'containers', 'pods'],
+                              ['deployments', "pods"],
                               config.discovery_interval_fast, config.resend_data_interval_fast))
 
     if config.debug_k8s_events:

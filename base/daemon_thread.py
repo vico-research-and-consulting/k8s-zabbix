@@ -378,7 +378,7 @@ class CheckKubernetesDaemon:
                         containers[ns] = dict()
 
                     pod_data = resourced_obj.resource_data
-                    pod_base_name = resourced_obj.base_name
+                    pod_base_name = resourced_obj.name
                     try:
                         container_status = json.loads(pod_data["container_status"])
                     except Exception as e:
