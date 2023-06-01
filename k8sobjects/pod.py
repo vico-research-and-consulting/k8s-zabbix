@@ -58,30 +58,40 @@ class Pod(K8sObject):
 
 
     def get_zabbix_metrics(self):
-        data = self.resource_data
         data_to_send = list()
 
-        sys.stderr.write("STATUS_METRICS data: %s\n" % (data))
-
+        sys.stderr.write("STATUS_STATUS %s" %(self.data["status"]))
         for status_type in self.data["status"]:
-            if status_type in self.resource_data: 
-                data_to_send.append(ZabbixMetric(
-                    self.zabbix_host,
-                    'check_kubernetesd[get,pods,%s,%s,%s]' % (self.name_space, self.name, status_type),
-                    transform_value(self.resource_data[status_type]))
-                )
-        if "available_status" in self.resource_data:
+
+            if status_type == "conditions":
+                continue
+
             data_to_send.append(ZabbixMetric(
                 self.zabbix_host,
-                'check_kubernetesd[get,pods,%s,%s,available_status]' % (self.name_space, self.name),
-                self.resource_data['available_status']))
+                'check_kubernetesd[get,pod,%s,%s,%s]' % (self.name_space, self.name, status_type),
+                transform_value(self.resource_data[status_type]))
+            )
 
+#        data_to_send.append(ZabbixMetric(
+#            self.zabbix_host,
+#            'check_kubernetesd[get,pod,%s,%s,available_status]' % (self.name_space, self.name),
+#            self.resource_data['available_status']))
+
+
+
+#         if "available_status" in self.data:
+#             data_to_send.append(ZabbixMetric(
+#                 self.zabbix_host,
+#                 'check_kubernetesd[get,pods,%s,%s,available_status]' % (self.name_space, self.name),
+#                 data['available_status']))
+
+        
+        sys.stderr.write("STATUS_METRICS data_to_send: %s\n" % (data_to_send))
         return data_to_send
 
 
     @property
     def resource_data(self):
-
 
         data = super().resource_data
         data["containers"] = json.dumps(self.containers)
@@ -140,7 +150,7 @@ class Pod(K8sObject):
 
         data["container_status"] = json.dumps(container_status)
         data["pod_data"] = json.dumps(pod_data)
-        logger.debug("Pod STATUS: data:\n%s\n" % (data))
+        logger.debug("STATUS_POD: data:%s\n" % (data))
         return data
 
 
