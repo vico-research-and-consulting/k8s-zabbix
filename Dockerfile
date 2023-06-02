@@ -12,14 +12,14 @@ ENV CRYPTOGRAPHY_DONT_BUILD_RUST "1"
 
 WORKDIR /app
 COPY --chown=nobody:users base                                /app/base/
-COPY --chown=nobody:users k8sobjects                          /app/k8sobjects/ 
+COPY --chown=nobody:users k8sobjects                          /app/k8sobjects/
 COPY --chown=nobody:users check_kubernetesd config_default.py /app/
 COPY --chown=nobody:users Pipfile Pipfile.lock                /app/
 
-RUN  apt-get update -y 
+RUN  apt-get update -y
 RUN  apt-get upgrade --update-cache --available -y
 RUN  apt-get dist-upgrade -y
-RUN  apt-get install libffi-dev libffi7 libssl-dev bash screen ncdu -y 
+RUN  apt-get install libffi-dev libffi7 libssl-dev bash screen ncdu -y
 RUN  pip install --root-user-action=ignore --upgrade pip && pip install --root-user-action=ignore pipenv
 RUN  PIPENV_USE_SYSTEM=1 pipenv install --system
 RUN  apt-get remove base libssl-dev libffi-dev gcc -y
@@ -30,7 +30,6 @@ COPY --chown=nobody:users base /app/base
 COPY --chown=nobody:users k8sobjects /app/k8sobjects
 COPY --chown=nobody:users check_kubernetesd /app/check_kubernetesd
 COPY --chown=nobody:users config_default.ini /app/config_default.ini
-COPY --chown=nobody:users config_default.py /app/config_default.py
 
 USER nobody
 ENTRYPOINT [ "/app/check_kubernetesd" ]
