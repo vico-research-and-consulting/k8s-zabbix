@@ -11,17 +11,14 @@ ENV ZABBIX_HOST "k8s"
 ENV CRYPTOGRAPHY_DONT_BUILD_RUST "1"
 
 WORKDIR /app
-COPY --chown=nobody:users base                                /app/base/
-COPY --chown=nobody:users k8sobjects                          /app/k8sobjects/
-COPY --chown=nobody:users check_kubernetesd config_default.py /app/
-COPY --chown=nobody:users Pipfile Pipfile.lock                /app/
+COPY --chown=nobody:users Pipfile  /app/
 
 RUN  apt-get update -y
-RUN  apt-get upgrade --update-cache --available -y
+RUN  apt-get upgrade -y
 RUN  apt-get dist-upgrade -y
 RUN  apt-get install libffi-dev libffi7 libssl-dev bash screen ncdu -y
 RUN  pip install --root-user-action=ignore --upgrade pip && pip install --root-user-action=ignore pipenv
-RUN  PIPENV_USE_SYSTEM=1 pipenv install --system
+RUN  PIPENV_USE_SYSTEM=1 pipenv install --skip-lock --system
 RUN  apt-get remove base libssl-dev libffi-dev gcc -y
 RUN  apt-get autoremove -y
 RUN  rm -rf /var/lib/apt/lists/* /root/.cache

@@ -425,6 +425,60 @@ This is used to ensure that k8s-zabbix is still active.</td><td>0</td><td>14d</t
 <td>TRAP</td><td>{#NAME} - condition_status_failed</td><td><tt>check_kubernetesd[get,nodes,{#NAME},condition_status_failed]</tt></td><td></td><td>0</td><td></td><td>0</td>
 </tr>
 </table>
+<h1>Discovery rule "Custom - Service - Kubernetes - Pods"</h1>
+<table class="pretty">
+<tr>
+<th>Name</th><th>Value</th>
+</tr>
+<tr>
+<td>Name</td><td>Custom - Service - Kubernetes - Pods</td>
+</tr>
+<tr>
+<td>Key</td><td>check_kubernetesd[discover,pods]</td>
+</tr>
+<tr>
+<td>Type</td><td>TRAP</td>
+</tr>
+<tr>
+<td>Delay</td><td>0</td>
+</tr>
+</table>
+<h2>Trigger Overview</h2>
+<table class="pretty">
+<tr>
+<th>Name</th><th>Description</th><th>Priority</th><th>Expression</th><th>Dependencies</th>
+</tr>
+<tr>
+<td>Pod {#NAMESPACE} / {#NAME} - not ready pods for 30minutes</td><td></td><td style="background-color:#FFFF00;">Warning</td><td><tt>min(/Custom - Service - Kubernetes/check_kubernetesd[get,pods,{#NAMESPACE},{#NAME},not_ready],35m)&lt;&gt;0</tt></td><td><tt></tt></td>
+</tr>
+<tr>
+<td>Pod {#NAMESPACE} / {#NAME} - restart_count &gt; 0</td><td></td><td style="background-color:#FFFF00;">Warning</td><td><tt>last(/Custom - Service - Kubernetes/check_kubernetesd[get,pods,{#NAMESPACE},{#NAME},restart_count])&gt;0</tt></td><td><tt></tt></td>
+</tr>
+</table>
+<h2>Graph Overview</h2>
+<table class="pretty">
+<tr>
+<th>Name</th><th>Elements</th>
+</tr>
+</table>
+<h2>Item Overview</h2>
+<table class="pretty">
+<tr>
+<th>Type</th><th>Name</th><th>Key</th><th>Description</th><th>Interval (sec)</th><th>History Days</th><th>Trend Days</th>
+</tr>
+<tr>
+<td>TRAP</td><td>{#NAMESPACE} / {#NAME}  - not_ready</td><td><tt>check_kubernetesd[get,pods,{#NAMESPACE},{#NAME},not_ready]</tt></td><td></td><td>0</td><td>14d</td><td></td>
+</tr>
+<tr>
+<td>TRAP</td><td>{#NAMESPACE} / {#NAME}  - ready</td><td><tt>check_kubernetesd[get,pods,{#NAMESPACE},{#NAME},ready]</tt></td><td></td><td>0</td><td>14d</td><td></td>
+</tr>
+<tr>
+<td>TRAP</td><td>{#NAMESPACE} / {#NAME}  - restart_count</td><td><tt>check_kubernetesd[get,pods,{#NAMESPACE},{#NAME},restart_count]</tt></td><td></td><td>0</td><td>14d</td><td></td>
+</tr>
+<tr>
+<td>TRAP</td><td>{#NAMESPACE} / {#NAME}  - status</td><td><tt>check_kubernetesd[get,pods,{#NAMESPACE},{#NAME},status]</tt></td><td></td><td>0</td><td>14d</td><td>0</td>
+</tr>
+</table>
 <h1>Discovery rule "Custom - Service - Kubernetes - PVCs"</h1>
 <table class="pretty">
 <tr>
