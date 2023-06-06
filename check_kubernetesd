@@ -88,6 +88,8 @@ if __name__ == '__main__':
         logger.debug("Starting with DEBUG enabled")
     if config.zabbix_debug:
         logger.info("starting with zabbix debug")
+    if config.zabbix_dry_run:
+        logger.warning("starting with zabbix_dry_run True, not sending to Zabbix!")
 
     daemons: List[CheckKubernetesDaemon] = list()
 

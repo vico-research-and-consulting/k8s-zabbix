@@ -96,8 +96,8 @@ class Pod(K8sObject):
                     pod_data["status"] = container_status[container_name]["status"]
                     data["ready"] = False
 
-        data["container_status"] = container_status
-        data["pod_data"] = pod_data
+        data["container_status"] = json.dumps(container_status)
+        data["pod_data"] = json.dumps(pod_data)
         return data
 
     @property
@@ -127,12 +127,13 @@ class Pod(K8sObject):
 
         self.data["status"].pop('conditions', None)
         rd = self.resource_data
+        pod_data = json.loads(rd["pod_data"])
 
-        for status_type in rd["pod_data"]:
+        for status_type in pod_data:
             data_to_send.append(ZabbixMetric(
                 self.zabbix_host,
                 'check_kubernetesd[get,pods,%s,%s,%s]' % (self.name_space, self.name, status_type),
-                transform_value(rd["pod_data"][status_type]))
+                transform_value(pod_data[status_type]))
             )
 
         return data_to_send
