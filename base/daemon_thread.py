@@ -380,6 +380,7 @@ class CheckKubernetesDaemon:
                     except Exception as e:
                         self.logger.error(e)
                         continue
+                    # self.logger.debug(container_status)
 
                     # aggregate container information
                     for container_name, container_data in container_status.items():
@@ -391,7 +392,7 @@ class CheckKubernetesDaemon:
                                 containers[ns][pod_base_name][container_name][k] += container_data[k]
                             elif k == "status" and container_data[k].startswith("ERROR"):
                                 containers[ns][pod_base_name][container_name][k] = container_data[k]
-
+                        self.logger.debug("%s %s %s" % (resourced_obj.name, container_name, containers[ns][pod_base_name][container_name]))
                 for ns, d1 in containers.items():
                     for pod_base_name, d2 in d1.items():
                         for container_name, container_data in d2.items():
