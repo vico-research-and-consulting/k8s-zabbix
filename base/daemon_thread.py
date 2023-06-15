@@ -1,4 +1,5 @@
 import logging
+import json
 import re
 import signal
 import sys
@@ -11,6 +12,7 @@ from pprint import pformat
 from k8sobjects.k8sobject import K8sObject
 from k8sobjects.k8sresourcemanager import K8sResourceManager
 from k8sobjects.pvc import get_pvc_volumes_for_all_nodes
+from k8sobjects.container import get_container_zabbix_metrics
 from kubernetes import client
 from kubernetes import config as kube_config
 from kubernetes import watch
@@ -171,25 +173,13 @@ class CheckKubernetesDaemon:
 
             if resource in ['containers', 'services']:
                 thread = TimedThread(resource, self.data_resend_interval, exit_flag,
-                                     daemon_object=self, daemon_method='watch_data')
+                                     daemon_object=self, daemon_method='report_global_data_zabbix',
+                                     delay_first_run_seconds=self.discovery_interval + 5)
                 self.manage_threads.append(thread)
                 thread.start()
             elif resource in ['components', 'pvcs']:
                 thread = TimedThread(resource, self.data_resend_interval, exit_flag,
                                      daemon_object=self, daemon_method='watch_data')
-                self.manage_threads.append(thread)
-                thread.start()
-            # additional looping data threads
-            elif resource == 'services':
-                thread = TimedThread(resource, self.data_resend_interval, exit_flag,
-                                     daemon_object=self, daemon_method='report_global_data_zabbix',
-                                     delay_first_run_seconds=self.discovery_interval + 5)
-                self.manage_threads.append(thread)
-                thread.start()
-            elif resource == 'containers':
-                thread = TimedThread(resource, self.data_resend_interval, exit_flag,
-                                     daemon_object=self, daemon_method='report_global_data_zabbix',
-                                     delay_first_run_seconds=self.discovery_interval + 5)
                 self.manage_threads.append(thread)
                 thread.start()
             else:
@@ -234,6 +224,8 @@ class CheckKubernetesDaemon:
             api = self.apps_v1
         elif resource in ["ingresses"]:
             api = self.extensions_v1
+        elif resource == 'containers':
+            api = None
         else:
             raise AttributeError("No valid resource found: %s" % resource)
         return api
@@ -406,7 +398,6 @@ class CheckKubernetesDaemon:
                 self.send_data_to_zabbix(resource, None, data_to_send)
 
     def resend_data(self, resource: str) -> None:
-
         with self.thread_lock:
             try:
                 metrics = list()
@@ -540,7 +531,7 @@ class CheckKubernetesDaemon:
                 self.logger.info('===> Sending to zabbix: >>>%s<<<' % metrics)
         return result
 
-    def send_discovery_to_zabbix(self, resource: str, metric: ZabbixMetric = None, obj: K8sObject = None) -> None:
+    def send_discovery_to_zabbix(self, resource: str, metric: ZabbixMetric | list = None, obj: K8sObject = None) -> None:
         if resource not in self.zabbix_resources:
             self.logger.warning(
                 f'resource {resource} ist not activated, active resources are : {",".join(self.zabbix_resources)}')
@@ -559,7 +550,10 @@ class CheckKubernetesDaemon:
             elif self.zabbix_debug:
                 self.logger.info("successfully sent zabbix discovery: %s  >>>>%s<<<" % (discovery_key, discovery_data))
         elif metric:
-            result = self.send_to_zabbix([metric])
+            if isinstance(metric, list):
+                result = self.send_to_zabbix(metric)
+            else:
+                result = self.send_to_zabbix([metric])
             if result.failed > 0:
                 self.logger.error("failed to send mass zabbix discovery: >>>%s<<<" % metric)
             elif self.zabbix_debug:

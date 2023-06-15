@@ -1,5 +1,5 @@
 import json
-import sys
+import threading
 import logging
 import re
 from pprint import pformat
@@ -12,6 +12,7 @@ logger = logging.getLogger("k8s-zabbix")
 
 
 class Pod(K8sObject):
+    """ Pod discovery is used also for containers """
     object_type = 'pod'
     kind = None
 
@@ -26,23 +27,32 @@ class Pod(K8sObject):
             except:
                 self.kind = None
         generate_name = self.data['metadata']['name']
+
         if "generate_name" in self.data['metadata'] and self.data['metadata']['generate_name']:
             generate_name = self.data['metadata']['generate_name']
+
+        base_name = ""
         match self.kind:
             case "Job":
-                name = re.sub(r'-\d+-$', '', generate_name)
+                base_name = re.sub(r'-\d+-$', '', generate_name)
             case "ReplicaSet":
-                name = re.sub(r'-[a-f0-9]{4,}-$', '', generate_name)
+                base_name = re.sub(r'-[a-f0-9]{4,}-$', '', generate_name)
             case _:
                 try:
-                    name = re.sub(r'-$', '', generate_name)
+                    base_name = re.sub(r'-$', '', generate_name)
                 except Exception as e:
-                    logger.debug("STATUS_NAME kind:%s\ngenerate_name:%s\ndata:%s\n" % (self.kind, generate_name, pformat(self.data, indent=2)))
-        return name
+                    logger.warning("Container name Exception in Pod: %s\ngenerate_name:%s\ndata:%s\n" %
+                                   (self.kind, generate_name, pformat(self.data, indent=2)))
+        self.data['base_name'] = base_name
+        # return self.data['metadata']['name']
+        return base_name
+
+    @property
+    def base_name(self) -> str:
+        return self.data['base_name']
 
     @property
     def resource_data(self):
-
         data = super().resource_data
         data["containers"] = json.dumps(self.containers)
         container_status = dict()
@@ -91,7 +101,6 @@ class Pod(K8sObject):
                             status_values.append(status)
 
                 if len(status_values) > 0:
-                    logger.debug("Pod STATUS_ERR: %s\n%s\n" % (status_values, container))
                     container_status[container_name]["status"] = "ERROR: " + (",".join(status_values))
                     pod_data["status"] = container_status[container_name]["status"]
                     data["ready"] = False
@@ -143,12 +152,18 @@ class Pod(K8sObject):
         if discovery_data is None:
             discovery_data = self.get_zabbix_discovery_data()
 
-        return ZabbixMetric(
+        return [ZabbixMetric(
             self.zabbix_host,
             "check_kubernetesd[discover,pods]",
             json.dumps(
                 {
                     "data": discovery_data,
-                }
-            ),
-        )
+                }),
+        ), ZabbixMetric(
+            self.zabbix_host,
+            "check_kubernetesd[discover,containers]",
+            json.dumps(
+                {
+                    "data": discovery_data,
+                }),
+        )]
