@@ -16,15 +16,27 @@ class Pod(K8sObject):
     object_type = 'pod'
     kind = None
 
+
     @property
     def name(self) -> str:
+        return self.real_name
+
+    @property
+    def real_name(self) -> str:
+        if 'metadata' not in self.data and 'name' in self.data['metadata']:
+            raise Exception(f'Could not find name in metadata for resource {self.resource}')
+        return self.data['metadata']['name']
+
+    @property
+    def base_name(self) -> str:
         if 'metadata' not in self.data and 'name' in self.data['metadata']:
             raise Exception(f'Could not find name in metadata for resource {self.resource}')
 
-        if "owner_references" in self.data['metadata']:
+        if "owner_references" in self.data['metadata'] and self.data['metadata']['owner_references'] is not None:
             try:
                 self.kind = self.data['metadata']['owner_references'][0]['kind']
-            except:
+            except Exception as e:
+                logger.warning("Pod base_name: metadata: %s, error: %s" % (self.data['metadata'], str(e)))
                 self.kind = None
         generate_name = self.data['metadata']['name']
 
@@ -43,13 +55,7 @@ class Pod(K8sObject):
                 except Exception as e:
                     logger.warning("Container name Exception in Pod: %s\ngenerate_name:%s\ndata:%s\n" %
                                    (self.kind, generate_name, pformat(self.data, indent=2)))
-        self.data['base_name'] = base_name
-        # return self.data['metadata']['name']
         return base_name
-
-    @property
-    def base_name(self) -> str:
-        return self.data['base_name']
 
     @property
     def resource_data(self):
@@ -119,14 +125,23 @@ class Pod(K8sObject):
 
     def get_zabbix_discovery_data(self) -> list[dict[str, str]]:
         # Main Methode
-        data = super().get_zabbix_discovery_data()
-        data[0]['{#KIND}'] = self.kind
-        for container in self.containers:
+        data = []
+        if self.manager.config.container_crawling == 'container':
+            for container in self.containers:
+                name = self.base_name
+                data += [
+                    {
+                        "{#NAMESPACE}": self.name_space,
+                        "{#NAME}": name,
+                        "{#CONTAINER}": container,
+                        "{#SLUG}": self.slug(name),
+                    }
+                ]
+        else:
             data += [
                 {
                     "{#NAMESPACE}": self.name_space,
-                    "{#NAME}": self.name,
-                    "{#CONTAINER}": container,
+                    "{#NAME}": self.real_name,
                 }
             ]
         return data
@@ -138,32 +153,36 @@ class Pod(K8sObject):
         rd = self.resource_data
         pod_data = json.loads(rd["pod_data"])
 
-        for status_type in pod_data:
-            data_to_send.append(ZabbixMetric(
-                self.zabbix_host,
-                'check_kubernetesd[get,pods,%s,%s,%s]' % (self.name_space, self.name, status_type),
-                transform_value(pod_data[status_type]))
-            )
+        if self.manager.config.container_crawling == 'pod':
+            for status_type in pod_data:
+                data_to_send.append(ZabbixMetric(
+                    self.zabbix_host,
+                    'check_kubernetesd[get,pods,%s,%s,%s]' % (self.name_space, self.name, status_type),
+                    transform_value(pod_data[status_type]))
+                )
 
         return data_to_send
 
     def get_discovery_for_zabbix(self, discovery_data=None):
-        # Alte Methode
-        if discovery_data is None:
-            discovery_data = self.get_zabbix_discovery_data()
-
-        return [ZabbixMetric(
-            self.zabbix_host,
-            "check_kubernetesd[discover,pods]",
-            json.dumps(
-                {
-                    "data": discovery_data,
-                }),
-        ), ZabbixMetric(
-            self.zabbix_host,
-            "check_kubernetesd[discover,containers]",
-            json.dumps(
-                {
-                    "data": discovery_data,
-                }),
-        )]
+        if self.manager.config.container_crawling == 'container':
+            if discovery_data is None:
+                discovery_data = self.get_zabbix_discovery_data(name_attr='base_name')
+            return ZabbixMetric(
+                self.zabbix_host,
+                "check_kubernetesd[discover,containers]",
+                json.dumps(
+                    {
+                        "data": discovery_data,
+                    }),
+            )
+        else:
+            if discovery_data is None:
+                discovery_data = self.get_zabbix_discovery_data()
+            ZabbixMetric(
+                self.zabbix_host,
+                "check_kubernetesd[discover,pods]",
+                json.dumps(
+                    {
+                        "data": discovery_data,
+                    }),
+            )

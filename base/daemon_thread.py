@@ -66,7 +66,7 @@ class CheckKubernetesDaemon:
                  discovery_interval: int, data_resend_interval: int,
                  ):
         self.manage_threads: list[TimedThread | WatcherThread] = []
-        self.config = config
+        self.config: Configuration = config
         self.logger = logging.getLogger("k8s-zabbix")
         self.discovery_interval = int(discovery_interval)
         self.data_resend_interval = int(data_resend_interval)
@@ -167,9 +167,9 @@ class CheckKubernetesDaemon:
         thread: WatcherThread | TimedThread
         for resource in self.resources:
             with self.thread_lock:
-                self.data.setdefault(resource, K8sResourceManager(resource, zabbix_host=self.zabbix_host))
+                self.data.setdefault(resource, K8sResourceManager(resource, zabbix_host=self.zabbix_host, config=self.config))
                 if resource == "pods":
-                    self.data.setdefault("containers", K8sResourceManager("containers"))
+                    self.data.setdefault("containers", K8sResourceManager("containers", config=self.config))
 
             if resource in ['containers', 'services']:
                 thread = TimedThread(resource, self.data_resend_interval, exit_flag,
@@ -200,6 +200,10 @@ class CheckKubernetesDaemon:
 
     def start_loop_send_discovery_threads(self) -> None:
         for resource in self.resources:
+            if resource == 'containers':
+                # skip containers as discovery is done by pods
+                continue
+
             send_discovery_thread = TimedThread(resource, self.discovery_interval, exit_flag,
                                                 daemon_object=self, daemon_method='send_zabbix_discovery',
                                                 delay_first_run=True,
@@ -338,7 +342,7 @@ class CheckKubernetesDaemon:
     def report_global_data_zabbix(self, resource: str) -> None:
         """ aggregate and report information for some speciality in resources """
         if resource not in self.discovery_sent:
-            self.logger.debug('skipping report_global_data_zabbix for %s, discovery not send yet!' % resource)
+            self.logger.info('skipping report_global_data_zabbix for %s, discovery not send yet!' % resource)
             return
 
         data_to_send = list()
@@ -370,7 +374,7 @@ class CheckKubernetesDaemon:
                         containers[ns] = dict()
 
                     pod_data = resourced_obj.resource_data
-                    pod_base_name = resourced_obj.name
+                    pod_base_name = resourced_obj.base_name
                     try:
                         container_status = json.loads(pod_data["container_status"])
                     except Exception as e:
@@ -398,6 +402,9 @@ class CheckKubernetesDaemon:
                 self.send_data_to_zabbix(resource, None, data_to_send)
 
     def resend_data(self, resource: str) -> None:
+        if resource == 'containers':
+            return
+
         with self.thread_lock:
             try:
                 metrics = list()
@@ -448,7 +455,6 @@ class CheckKubernetesDaemon:
                 self.logger.warning(str(e))
 
     def delete_object(self, resource_type: str, resourced_obj: K8sObject) -> None:
-        # TODO: trigger zabbix discovery, srsly?
         self.send_to_web_api(resource_type, resourced_obj, "deleted")
 
     def send_zabbix_discovery(self, resource: str) -> None:
@@ -471,6 +477,8 @@ class CheckKubernetesDaemon:
                 self.logger.warning('send_zabbix_discovery: resource "%s" has no discovery data' % resource)
 
             self.discovery_sent[resource] = datetime.now()
+            if resource == 'pods' and self.config.container_crawling == 'container':
+                self.discovery_sent['containers'] = datetime.now()
 
     def send_object(self, resource: str, resourced_obj: K8sObject,
                     event_type: str, send_zabbix_data: bool = False,
@@ -563,6 +571,10 @@ class CheckKubernetesDaemon:
 
     def send_data_to_zabbix(self, resource: str, obj: K8sObject = None,
                             metrics: list[ZabbixMetric] | None = None) -> None:
+        if resource not in self.discovery_sent:
+            self.logger.info('skipping send_data_to_zabbix for %s, discovery not send yet!' % resource)
+            return
+
         if metrics is None:
             metrics = list()
         if resource not in self.zabbix_resources:

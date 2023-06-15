@@ -38,6 +38,8 @@ class Configuration:
     sentry_enabled: bool = False
     sentry_dsn: str = ""
 
+    container_crawling: str = "container"
+
     zabbix_server: str = 'example.zabbix-server.com'
     zabbix_resources_exclude: list[str] = field(default_factory=lambda: [])
     zabbix_host: str = 'k8s-example-host'

@@ -153,6 +153,9 @@ class K8sObject:
             raise Exception("Could not find name_space for obj [%s] %s" % (self.resource, self.name))
         return name_space
 
+    def slug(self, name):
+        return slugit(self.name_space or "None", name, 40)
+
     def is_unsubmitted_web(self) -> bool:
         return self.last_sent_web == INITIAL_DATE
 
@@ -166,7 +169,7 @@ class K8sObject:
         return [{
             "{#NAME}": self.name,
             "{#NAMESPACE}": self.name_space or "None",
-            "{#SLUG}": slugit(self.name_space or "None", self.name, 40),
+            "{#SLUG}": self.slug(self.name),
         }]
 
     def get_discovery_for_zabbix(self, discovery_data: list[dict[str, str]] | None) -> ZabbixMetric:

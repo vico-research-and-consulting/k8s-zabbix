@@ -1,15 +1,17 @@
 import importlib
 import logging
 
+from base.config import Configuration
 from k8sobjects.k8sobject import K8S_RESOURCES, K8sObject
 
 logger = logging.getLogger("k8s-zabbix")
 
 
 class K8sResourceManager:
-    def __init__(self, resource: str, zabbix_host: str = None):
+    def __init__(self, resource: str, zabbix_host: str = None, config: Configuration = None):
         self.resource = resource
         self.zabbix_host = zabbix_host
+        self.config = config
 
         self.objects: dict[str, K8sObject] = dict()
         self.containers: dict = dict()  # containers only used for pods
