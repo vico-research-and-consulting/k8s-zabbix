@@ -16,7 +16,7 @@ COPY --chown=nobody:users Pipfile  /app/
 RUN  apt-get update -y
 RUN  apt-get upgrade -y
 RUN  apt-get dist-upgrade -y
-RUN  apt-get install libffi-dev libffi7 libssl-dev bash screen ncdu -y
+RUN  apt-get install libffi-dev libffi8 libssl-dev bash screen ncdu -y
 RUN  pip install --root-user-action=ignore --upgrade pip && pip install --root-user-action=ignore pipenv
 RUN  PIPENV_USE_SYSTEM=1 pipenv install --skip-lock --system
 RUN  apt-get remove base libssl-dev libffi-dev gcc -y
