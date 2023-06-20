@@ -2,12 +2,6 @@
 <zabbix_export>
     <version>5.4</version>
     <date>2023-06-20T11:37:43Z</date>
-    <template_groups>
-        <template_group>
-            <uuid>7df96b18c230490a9a0a9e2307226338</uuid>
-            <name>Templates</name>
-        </template_group>
-    </template_groups>
     <templates>
         <template>
             <uuid>8f04444064e9401ebf6b5c72a883909c</uuid>
