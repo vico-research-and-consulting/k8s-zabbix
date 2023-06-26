@@ -163,8 +163,12 @@ class CheckKubernetesDaemon:
         self.start_loop_send_discovery_threads()
         self.start_resend_threads()
 
+    def excepthook(self, args):
+        self.logger.error(f"Thread '{self.resources}' failed: {args.exc_value}")
+
     def start_data_threads(self) -> None:
         thread: WatcherThread | TimedThread
+        threading.excepthook = self.excepthook
         for resource in self.resources:
             with self.thread_lock:
                 self.data.setdefault(resource, K8sResourceManager(resource, zabbix_host=self.zabbix_host, config=self.config))
