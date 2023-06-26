@@ -1,5 +1,4 @@
 import json
-import threading
 import logging
 import re
 from pprint import pformat
@@ -15,7 +14,6 @@ class Pod(K8sObject):
     """ Pod discovery is used also for containers """
     object_type = 'pod'
     kind = None
-
 
     @property
     def name(self) -> str:
@@ -38,7 +36,8 @@ class Pod(K8sObject):
             except Exception as e:
                 logger.warning("Pod base_name: metadata: %s, error: %s" % (self.data['metadata'], str(e)))
                 self.kind = None
-        generate_name = self.data['metadata']['name']
+
+        generate_name = self.real_name
 
         if "generate_name" in self.data['metadata'] and self.data['metadata']['generate_name']:
             generate_name = self.data['metadata']['generate_name']

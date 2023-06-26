@@ -72,7 +72,8 @@ def slugit(name_space: str, name: str, maxlen: int) -> str:
 class MetadataObjectType(TypedDict):
     name: str
     namespace: str
-    generate_name: str
+    generate_name: str | None
+    owner_references: list[dict[str, str]]
 
 
 class ObjectDataType(TypedDict):

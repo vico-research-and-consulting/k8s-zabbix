@@ -17,7 +17,7 @@ from kubernetes import client
 from kubernetes import config as kube_config
 from kubernetes import watch
 from kubernetes.client import (ApiClient, AppsV1Api, CoreV1Api,
-                               ExtensionsV1beta1Api)
+                               ApiextensionsV1Api)
 from pyzabbix import ZabbixMetric, ZabbixResponse, ZabbixSender
 
 from base.config import ClusterAccessConfigType, Configuration
@@ -53,7 +53,7 @@ class KubernetesApi:
         if not getattr(self, "apps_v1", None):
             self.apps_v1 = client.AppsV1Api(api_client)
         if not getattr(self, "exentsions_v1", None):
-            self.extensions_v1 = client.ExtensionsV1beta1Api(api_client)
+            self.extensions_v1 = client.ApiextensionsV1Api(api_client)
 
 
 class CheckKubernetesDaemon:
@@ -221,7 +221,7 @@ class CheckKubernetesDaemon:
             self.manage_threads.append(resend_thread)
             resend_thread.start()
 
-    def get_api_for_resource(self, resource: str) -> CoreV1Api | AppsV1Api | ExtensionsV1beta1Api:
+    def get_api_for_resource(self, resource: str) -> CoreV1Api | AppsV1Api | ApiextensionsV1Api:
         if resource in ['nodes', 'components', 'secrets', 'pods', 'services', 'pvcs']:
             api = self.core_v1
         elif resource in ["deployments", "daemonsets", "statefulsets"]:
@@ -540,7 +540,7 @@ class CheckKubernetesDaemon:
                 self.logger.info('===> Sending to zabbix: >>>%s<<<' % metrics)
         return result
 
-    def send_discovery_to_zabbix(self, resource: str, metric: ZabbixMetric | list = None, obj: K8sObject = None) -> None:
+    def send_discovery_to_zabbix(self, resource: str, metric: ZabbixMetric | list = None, obj: K8sObject | None = None) -> None:
         if resource not in self.zabbix_resources:
             self.logger.warning(
                 f'resource {resource} ist not activated, active resources are : {",".join(self.zabbix_resources)}')
@@ -570,7 +570,7 @@ class CheckKubernetesDaemon:
         else:
             self.logger.warning("No obj or metrics found for send_discovery_to_zabbix [%s]" % resource)
 
-    def send_data_to_zabbix(self, resource: str, obj: K8sObject = None,
+    def send_data_to_zabbix(self, resource: str, obj: K8sObject | None = None,
                             metrics: list[ZabbixMetric] | None = None) -> None:
         if resource not in self.discovery_sent:
             self.logger.info('skipping send_data_to_zabbix for %s, discovery not send yet!' % resource)

@@ -8,7 +8,7 @@ logger = logging.getLogger("k8s-zabbix")
 
 
 class K8sResourceManager:
-    def __init__(self, resource: str, zabbix_host: str = None, config: Configuration = None):
+    def __init__(self, resource: str, zabbix_host: str | None = None, config: Configuration | None = None):
         self.resource = resource
         self.zabbix_host = zabbix_host
         self.config = config

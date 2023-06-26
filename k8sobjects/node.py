@@ -42,18 +42,22 @@ class Node(K8sObject):
         for cond in self.data["status"]["conditions"]:
             if cond["type"].lower() == "ready" and cond["status"] == "True":
                 data["condition_ready"] = True
-            else:
-                if cond["status"] == "True":
-                    failed_conds.append(cond["type"])
+            elif cond["status"] == "True":
+                failed_conds.append(cond["type"])
 
         data["failed_conds"] = failed_conds
 
         for monitor_value in self.MONITOR_VALUES:
             current_indirection = self.data["status"]
+            is_found = True
             for key in monitor_value.split("."):
-                current_indirection = current_indirection[key]
+                if key in current_indirection:
+                    current_indirection = current_indirection[key]
+                else:
+                    is_found = False
 
-            data[monitor_value] = transform_value(current_indirection)
+            if is_found:
+                data[monitor_value] = transform_value(current_indirection)
 
         return data
 
