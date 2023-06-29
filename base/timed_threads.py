@@ -12,7 +12,6 @@ class TimedThread(threading.Thread):
     restart_thread = False
     daemon = True
 
-    # TODO: change default of delay_first_run_seconds to 120 seconds
     def __init__(self, resource: str, interval: int,
                  exit_flag: threading.Event,
                  daemon_object: 'CheckKubernetesDaemon',
@@ -35,6 +34,7 @@ class TimedThread(threading.Thread):
 
     def run(self) -> None:
         # manage first run
+        self.logger.info('[start thread|timed] %s -> %s' % (self.resource, self.daemon_method))
         if self.delay_first_run:
             self.logger.info(
                 '%s -> %s | delaying first run by %is [interval %is]' %
@@ -42,6 +42,11 @@ class TimedThread(threading.Thread):
                  self.cycle_interval_seconds)
             )
             time.sleep(self.delay_first_run_seconds)
+            try:
+                self.run_requests(first_run=True)
+            except Exception as e:
+                self.logger.exception(e)
+        else:
             try:
                 self.run_requests(first_run=True)
             except Exception as e:
