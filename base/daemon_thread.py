@@ -178,6 +178,7 @@ class CheckKubernetesDaemon:
             if resource in ['containers', 'services']:
                 thread = TimedThread(resource, self.data_resend_interval, exit_flag,
                                      daemon_object=self, daemon_method='report_global_data_zabbix',
+                                     delay_first_run=True,
                                      delay_first_run_seconds=self.discovery_interval + 5)
                 self.manage_threads.append(thread)
                 thread.start()
@@ -211,7 +212,7 @@ class CheckKubernetesDaemon:
             send_discovery_thread = TimedThread(resource, self.discovery_interval, exit_flag,
                                                 daemon_object=self, daemon_method='send_zabbix_discovery',
                                                 delay_first_run=True,
-                                                delay_first_run_seconds=30)
+                                                delay_first_run_seconds=120)
             self.manage_threads.append(send_discovery_thread)
             send_discovery_thread.start()
 
@@ -220,7 +221,7 @@ class CheckKubernetesDaemon:
             resend_thread = TimedThread(resource, self.data_resend_interval, exit_flag,
                                         daemon_object=self, daemon_method='resend_data',
                                         delay_first_run=True,
-                                        delay_first_run_seconds=60,
+                                        delay_first_run_seconds=180,
                                         )
             self.manage_threads.append(resend_thread)
             resend_thread.start()
@@ -320,15 +321,7 @@ class CheckKubernetesDaemon:
                 self.logger.error('Could not add watch_event_handler! No resource_class for "%s"' % resource)
                 return
 
-        if event_type.lower() == "added":
-            with self.thread_lock:
-                resourced_obj = self.data[resource].add_obj_from_data(obj)
-
-            if resourced_obj and (resourced_obj.is_dirty_zabbix or resourced_obj.is_dirty_web):
-                self.send_object(resource, resourced_obj, event_type,
-                                 send_zabbix_data=resourced_obj.is_dirty_zabbix,
-                                 send_web=resourced_obj.is_dirty_web)
-        elif event_type.lower() == 'modified':
+        if event_type.lower() in ['added', 'modified']:
             with self.thread_lock:
                 resourced_obj = self.data[resource].add_obj_from_data(obj)
             if resourced_obj and (resourced_obj.is_dirty_zabbix or resourced_obj.is_dirty_web):
@@ -422,8 +415,8 @@ class CheckKubernetesDaemon:
                     zabbix_send = False
                     if resource in self.discovery_sent and obj.added > self.discovery_sent[resource]:
                         self.logger.info(
-                            f'skipping resend of {obj}, resource {resource} discovery_sent '
-                            f'"{self.discovery_sent[resource].isoformat()}" is older than {obj.added.isoformat()}')
+                            f'skipping resend of {obj}, resource {resource} discovery_sent "{self.discovery_sent[resource].isoformat()}"'
+                            f' is older than {obj.added.isoformat()}')
                     elif obj.last_sent_zabbix < (datetime.now() - timedelta(seconds=self.data_resend_interval)):
                         self.logger.debug(
                             "resend zabbix : %s  - %s/%s data because its outdated"
@@ -466,7 +459,8 @@ class CheckKubernetesDaemon:
 
     def send_zabbix_discovery(self, resource: str) -> None:
         # aggregate data and send to zabbix
-        self.logger.info(f"send_zabbix_discovery: {resource}")
+        next_run = datetime.now() + timedelta(seconds=self.discovery_interval)
+        self.logger.info(f"send_zabbix_discovery: {resource}, next run: {next_run.isoformat()}")
         with self.thread_lock:
             if resource not in self.data:
                 self.logger.warning('send_zabbix_discovery: resource "%s" not in self.data... skipping!' % resource)
@@ -585,7 +579,8 @@ class CheckKubernetesDaemon:
             return
         elif obj and obj.added > self.discovery_sent[resource]:
             self.logger.info(
-                f'skipping send of {obj}, resource {resource} discovery_sent is below {obj.added.isoformat()}')
+                f'skipping send of {obj}, resource {resource} discovery_sent "{self.discovery_sent[resource]}" '
+                f'is older than obj: {obj.added.isoformat()}')
             return
 
         if metrics is None:
