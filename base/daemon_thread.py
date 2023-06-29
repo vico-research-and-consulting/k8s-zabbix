@@ -420,8 +420,9 @@ class CheckKubernetesDaemon:
                 # Zabbix
                 for obj_uid, obj in self.data[resource].objects.items():
                     zabbix_send = False
-                    if resource in self.discovery_sent:
-                        zabbix_send = True
+                    if resource in self.discovery_sent and obj.added < self.discovery_sent[resource]:
+                        self.logger.info(
+                            f'skipping resend of {obj}, resource {resource} discovery_sent is older than {obj.added.isoformat()}')
                     elif obj.last_sent_zabbix < (datetime.now() - timedelta(seconds=self.data_resend_interval)):
                         self.logger.debug(
                             "resend zabbix : %s  - %s/%s data because its outdated"
@@ -581,7 +582,7 @@ class CheckKubernetesDaemon:
         if resource not in self.discovery_sent:
             self.logger.info('skipping send_data_to_zabbix for %s, discovery not send yet!' % resource)
             return
-        elif obj.added > self.discovery_sent[resource]:
+        elif obj and obj.added > self.discovery_sent[resource]:
             self.logger.info(
                 f'skipping send of {obj}, resource {resource} discovery_sent is below {obj.added.isoformat()}')
             return
