@@ -100,6 +100,7 @@ class K8sObject:
         """Get the resource data from the k8s api"""
         self.is_dirty_zabbix = True
         self.is_dirty_web = True
+        self.added = INITIAL_DATE
         self.last_sent_zabbix_discovery = INITIAL_DATE
         self.last_sent_zabbix = INITIAL_DATE
         self.last_sent_web = INITIAL_DATE

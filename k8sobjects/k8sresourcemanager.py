@@ -1,5 +1,6 @@
 import importlib
 import logging
+from datetime import datetime
 
 from base.config import Configuration
 from k8sobjects.k8sobject import K8S_RESOURCES, K8sObject
@@ -34,11 +35,13 @@ class K8sResourceManager:
         if new_obj.uid not in self.objects:
             # new object
             self.objects[new_obj.uid] = new_obj
+            new_obj.added = datetime.now()
         elif self.objects[new_obj.uid].data_checksum != new_obj.data_checksum:
             # existing object with modified data
             new_obj.last_sent_zabbix_discovery = self.objects[new_obj.uid].last_sent_zabbix_discovery
             new_obj.last_sent_zabbix = self.objects[new_obj.uid].last_sent_zabbix
             new_obj.last_sent_web = self.objects[new_obj.uid].last_sent_web
+            new_obj.added = self.objects[new_obj.uid].added
             new_obj.is_dirty_web = True
             new_obj.is_dirty_zabbix = True
             self.objects[new_obj.uid] = new_obj

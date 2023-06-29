@@ -164,7 +164,7 @@ class CheckKubernetesDaemon:
         self.start_resend_threads()
 
     def excepthook(self, args):
-        self.logger.error(f"Thread '{self.resources}' failed: {args.exc_value}")
+        self.logger.exception(f"Thread '{self.resources}' failed: {args.exc_value}")
 
     def start_data_threads(self) -> None:
         thread: WatcherThread | TimedThread
@@ -490,6 +490,7 @@ class CheckKubernetesDaemon:
                     send_web: bool = False) -> None:
         # send single object for updates
         with self.thread_lock:
+
             if send_zabbix_data:
                 if resourced_obj.last_sent_zabbix < datetime.now() - timedelta(seconds=self.rate_limit_seconds):
                     self.send_data_to_zabbix(resource, obj=resourced_obj)
@@ -576,8 +577,13 @@ class CheckKubernetesDaemon:
 
     def send_data_to_zabbix(self, resource: str, obj: K8sObject | None = None,
                             metrics: list[ZabbixMetric] | None = None) -> None:
+
         if resource not in self.discovery_sent:
             self.logger.info('skipping send_data_to_zabbix for %s, discovery not send yet!' % resource)
+            return
+        elif obj.added > self.discovery_sent[resource]:
+            self.logger.info(
+                f'skipping send of {obj}, resource {resource} discovery_sent is below {obj.added.isoformat()}')
             return
 
         if metrics is None:
