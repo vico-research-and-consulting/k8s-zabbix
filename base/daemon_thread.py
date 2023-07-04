@@ -582,6 +582,8 @@ class CheckKubernetesDaemon:
                 f'skipping send of {obj}, resource {resource} discovery_sent "{self.discovery_sent[resource]}" '
                 f'is older than obj: {obj.added.isoformat()}')
             return
+        else:
+            self.logger.info(f'sending data for "{resource}" to zabbix')
 
         if metrics is None:
             metrics = list()
