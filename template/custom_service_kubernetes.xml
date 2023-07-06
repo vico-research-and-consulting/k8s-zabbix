@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <zabbix_export>
     <version>5.4</version>
-    <date>2023-06-20T11:37:43Z</date>
+    <date>2023-07-06T08:32:16Z</date>
     <templates>
         <template>
             <uuid>8f04444064e9401ebf6b5c72a883909c</uuid>
@@ -221,7 +221,7 @@ This is used to ensure that k8s-zabbix is still active.</description>
                                     <uuid>aa16ae9f633d4cd283ef5d886eba81de</uuid>
                                     <expression>last(/Custom - Service - Kubernetes/check_kubernetesd[get,containers,{#NAMESPACE},{#NAME},{#CONTAINER},restart_count])&gt;0</expression>
                                     <recovery_mode>RECOVERY_EXPRESSION</recovery_mode>
-                                    <recovery_expression>nodata(/Custom - Service - Kubernetes/check_kubernetesd[get,containers,{#NAMESPACE},{#NAME},{#CONTAINER},restart_count],300m)=1</recovery_expression>
+                                    <recovery_expression>sum(/Custom - Service - Kubernetes/check_kubernetesd[get,containers,{#NAMESPACE},{#NAME},{#CONTAINER},restart_count],60m) = 0</recovery_expression>
                                     <name>Pod {#NAMESPACE} / {#NAME} - restart_count &gt; 0</name>
                                     <priority>WARNING</priority>
                                 </trigger_prototype>
@@ -257,7 +257,7 @@ This is used to ensure that k8s-zabbix is still active.</description>
                                     <uuid>e6ffc66ca8bc4e0ea3493deaf793231f</uuid>
                                     <expression>find(/Custom - Service - Kubernetes/check_kubernetesd[get,containers,{#NAMESPACE},{#NAME},{#CONTAINER},status],,&quot;like&quot;,&quot;ERROR&quot;)=1</expression>
                                     <recovery_mode>RECOVERY_EXPRESSION</recovery_mode>
-                                    <recovery_expression>nodata(/Custom - Service - Kubernetes/check_kubernetesd[get,containers,{#NAMESPACE},{#NAME},{#CONTAINER},status],300m)=1</recovery_expression>
+                                    <recovery_expression>nodata(/Custom - Service - Kubernetes/check_kubernetesd[get,containers,{#NAMESPACE},{#NAME},{#CONTAINER},status],300m)=1 or find(/Custom - Service - Kubernetes/check_kubernetesd[get,containers,{#NAMESPACE},{#NAME},{#CONTAINER},status],,&quot;like&quot;,&quot;OK&quot;)=1</recovery_expression>
                                     <name>Pod {#NAMESPACE} / {#NAME} - status - {ITEM.VALUE}</name>
                                     <opdata>{ITEM.VALUE}</opdata>
                                     <priority>WARNING</priority>
