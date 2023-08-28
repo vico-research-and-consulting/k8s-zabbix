@@ -98,12 +98,18 @@ class Pod(K8sObject):
                 if container["state"] and len(container["state"]) > 0:
                     for status, container_data in container["state"].items():
                         try:
-                            terminated_state = container["state"]["terminated"]["reason"]
+                            reason = container["state"][status]["reason"]
                         except Exception:
-                            terminated_state = ""
+                            reason = ""
 
-                        if container_data is not None and status == "terminated" and terminated_state != "Completed":
-                            status_values.append(status)
+                        if container_data is not None and status == "terminated" and reason != "Completed":
+                            status_values.append("Terminated")
+
+                        if self.phase == "Pending":
+                            if reason == 'ImagePullBackOff':
+                                container_status[container_name]["not_ready"] += 1
+                                pod_data["not_ready"] += 1
+                                status_values.append('ImagePullBackOff')
 
                 if len(status_values) > 0:
                     container_status[container_name]["status"] = "ERROR: " + (",".join(status_values))
