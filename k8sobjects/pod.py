@@ -15,6 +15,9 @@ class Pod(K8sObject):
     object_type = 'pod'
     kind = None
 
+    def get_list(self):
+        return self.manager.api.list_pod_for_all_namespaces()
+
     @property
     def name(self) -> str:
         return self.real_name

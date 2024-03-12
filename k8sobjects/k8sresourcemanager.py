@@ -2,6 +2,9 @@ import importlib
 import logging
 from datetime import datetime
 
+from kubernetes.client import (AppsV1Api, CoreV1Api,
+                               ApiextensionsV1Api)
+
 from base.config import Configuration
 from k8sobjects.k8sobject import K8S_RESOURCES, K8sObject
 
@@ -9,8 +12,10 @@ logger = logging.getLogger("k8s-zabbix")
 
 
 class K8sResourceManager:
-    def __init__(self, resource: str, zabbix_host: str | None = None, config: Configuration | None = None):
+    def __init__(self, resource: str, apis: dict | None = None,
+                 zabbix_host: str | None = None, config: Configuration | None = None):
         self.resource = resource
+        self.apis = apis
         self.zabbix_host = zabbix_host
         self.config = config
 
@@ -20,7 +25,25 @@ class K8sResourceManager:
         mod = importlib.import_module('k8sobjects')
         class_label = K8S_RESOURCES[resource]
         self.resource_class = getattr(mod, class_label.capitalize(), None)
+        if self.resource_class is not None:
+            self.resource_meta = self.resource_class(None, self.resource, manager=self)
+
         logger.info(f"Creating new resource manager for resource {resource} with class {self.resource_class}")
+
+        self.api = self.get_api_for_resource(resource)
+
+    def get_api_for_resource(self, resource: str) -> CoreV1Api | AppsV1Api | ApiextensionsV1Api:
+        if resource in ['nodes', 'components', 'secrets', 'pods', 'services', 'pvcs']:
+            api = self.apis.get('core_v1')
+        elif resource in ["deployments", "daemonsets", "statefulsets"]:
+            api = self.apis.get('apps_v1')
+        elif resource in ["ingresses"]:
+            api = self.apis.get('extensions_v1')
+        elif resource == 'containers':
+            api = None
+        else:
+            raise AttributeError("No valid resource found: %s" % resource)
+        return api
 
     def add_obj_from_data(self, data: dict) -> K8sObject | None:
         if not self.resource_class:
@@ -31,7 +54,6 @@ class K8sResourceManager:
         return self.add_obj(new_obj)
 
     def add_obj(self, new_obj: K8sObject) -> K8sObject | None:
-
         if new_obj.uid not in self.objects:
             # new object
             self.objects[new_obj.uid] = new_obj

@@ -8,6 +8,9 @@ logger = logging.getLogger("k8s-zabbix")
 class Service(K8sObject):
     object_type = "service"
 
+    def get_list(self):
+        return self.manager.api.list_service_for_all_namespaces()
+
     @property
     def resource_data(self):
         data = super().resource_data

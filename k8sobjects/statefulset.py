@@ -10,6 +10,9 @@ logger = logging.getLogger("k8s-zabbix")
 class Statefulset(K8sObject):
     object_type = "statefulset"
 
+    def get_list(self):
+        return self.manager.api.list_stateful_set_for_all_namespaces()
+
     @property
     def resource_data(self):
         data = super().resource_data

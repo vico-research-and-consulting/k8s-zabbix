@@ -93,13 +93,15 @@ class CheckKubernetesDaemon:
         self.logger.info(f"Initialized cluster access for {config.k8s_config_type}")
         # K8S API
         self.debug_k8s_events = False
-        self.core_v1 = KubernetesApi(self.api_client).core_v1
-        self.apps_v1 = KubernetesApi(self.api_client).apps_v1
-        self.extensions_v1 = KubernetesApi(self.api_client).extensions_v1
+        self.apis = {
+            'core_v1': KubernetesApi(self.api_client).core_v1,
+            'apps_v1': KubernetesApi(self.api_client).apps_v1,
+            'extensions_v1': KubernetesApi(self.api_client).extensions_v1
+        }
 
         self.zabbix_sender = ZabbixSender(zabbix_server=config.zabbix_server)
         self.zabbix_resources = CheckKubernetesDaemon.exclude_resources(resources,
-                                                                        self.config.zabbix_resources_exclude)
+                                                                        config.zabbix_resources_exclude)
         self.zabbix_host = config.zabbix_host
         self.zabbix_debug = config.zabbix_debug
         self.zabbix_single_debug = config.zabbix_single_debug
@@ -108,14 +110,14 @@ class CheckKubernetesDaemon:
         self.web_api = None
         self.web_api_enable = config.web_api_enable
         self.web_api_resources = CheckKubernetesDaemon.exclude_resources(resources,
-                                                                         self.config.web_api_resources_exclude)
+                                                                         config.web_api_resources_exclude)
 
         self.web_api_host = config.web_api_host
         self.web_api_token = config.web_api_token
         self.web_api_cluster = config.web_api_cluster
         self.web_api_verify_ssl = config.web_api_verify_ssl
 
-        self.resources = CheckKubernetesDaemon.exclude_resources(resources, self.config.resources_exclude)
+        self.resources = CheckKubernetesDaemon.exclude_resources(resources, config.resources_exclude)
 
         self.logger.info(f"Init K8S-ZABBIX Watcher for resources: {','.join(self.resources)}")
         self.logger.info(f"Zabbix Host: {self.zabbix_host} / Zabbix Proxy or Server: {config.zabbix_server}")
@@ -144,7 +146,7 @@ class CheckKubernetesDaemon:
                 for r, d in self.data.items():
                     for obj_name, obj_d in d.objects.items():
                         self.logger.info(
-                            f"resource={r}, last_sent_zabbix={obj_d.last_sent_zabbix}, " + f"last_sent_web={obj_d.last_sent_web}"
+                            f"resource={r}, [{obj_name}], last_sent_zabbix={obj_d.last_sent_zabbix}, " + f"last_sent_web={obj_d.last_sent_web}"
                         )
                 for resource_discovered, resource_discovered_time in self.discovery_sent.items():
                     self.logger.info(
@@ -171,9 +173,14 @@ class CheckKubernetesDaemon:
         threading.excepthook = self.excepthook
         for resource in self.resources:
             with self.thread_lock:
-                self.data.setdefault(resource, K8sResourceManager(resource, zabbix_host=self.zabbix_host, config=self.config))
+                self.data.setdefault(resource, K8sResourceManager(resource,
+                                                                  apis=self.apis,
+                                                                  zabbix_host=self.zabbix_host,
+                                                                  config=self.config))
                 if resource == "pods":
-                    self.data.setdefault("containers", K8sResourceManager("containers", config=self.config))
+                    # additional containers coming from pods
+                    self.data.setdefault("containers", K8sResourceManager("containers",
+                                                                          config=self.config))
 
             if resource in ['containers', 'services']:
                 thread = TimedThread(resource, self.data_resend_interval, exit_flag,
@@ -210,9 +217,9 @@ class CheckKubernetesDaemon:
                 continue
 
             send_discovery_thread = TimedThread(resource, self.discovery_interval, exit_flag,
-                                                daemon_object=self, daemon_method='send_zabbix_discovery',
+                                                daemon_object=self, daemon_method='update_discovery',
                                                 delay_first_run=True,
-                                                delay_first_run_seconds=120)
+                                                delay_first_run_seconds=self.config.discovery_interval_delay)
             self.manage_threads.append(send_discovery_thread)
             send_discovery_thread.start()
 
@@ -221,23 +228,10 @@ class CheckKubernetesDaemon:
             resend_thread = TimedThread(resource, self.data_resend_interval, exit_flag,
                                         daemon_object=self, daemon_method='resend_data',
                                         delay_first_run=True,
-                                        delay_first_run_seconds=180,
+                                        delay_first_run_seconds=self.config.data_resend_interval_delay,
                                         )
             self.manage_threads.append(resend_thread)
             resend_thread.start()
-
-    def get_api_for_resource(self, resource: str) -> CoreV1Api | AppsV1Api | ApiextensionsV1Api:
-        if resource in ['nodes', 'components', 'secrets', 'pods', 'services', 'pvcs']:
-            api = self.core_v1
-        elif resource in ["deployments", "daemonsets", "statefulsets"]:
-            api = self.apps_v1
-        elif resource in ["ingresses"]:
-            api = self.extensions_v1
-        elif resource == 'containers':
-            api = None
-        else:
-            raise AttributeError("No valid resource found: %s" % resource)
-        return api
 
     def get_web_api(self) -> WebApi:
         if not hasattr(self, '_web_api'):
@@ -245,7 +239,7 @@ class CheckKubernetesDaemon:
         return self._web_api
 
     def watch_data(self, resource: str) -> None:
-        api = self.get_api_for_resource(resource)
+        api = self.data[resource].api
         stream_named_arguments = {"timeout_seconds": self.config.k8s_api_stream_timeout_seconds}
         request_named_arguments = {"_request_timeout": self.config.k8s_api_request_timeout_seconds}
         self.logger.info(
@@ -457,29 +451,39 @@ class CheckKubernetesDaemon:
     def delete_object(self, resource_type: str, resourced_obj: K8sObject) -> None:
         self.send_to_web_api(resource_type, resourced_obj, "deleted")
 
+    def update_discovery(self, resource: str) -> None:
+        """ Update elements on hold and send to zabbix """
+        resource_obj = self.data[resource].resource_meta
+        with self.thread_lock:
+            obj_list = resource_obj.get_uid_list()
+            for obj_uid in self.data[resource].objects:
+                if obj_uid not in obj_list:
+                    self.logger.info("NOT finding {obj.uid} anymore -> removing")
+            self.send_zabbix_discovery(resource)
+
     def send_zabbix_discovery(self, resource: str) -> None:
         # aggregate data and send to zabbix
         next_run = datetime.now() + timedelta(seconds=self.discovery_interval)
         self.logger.info(f"send_zabbix_discovery: {resource}, next run: {next_run.isoformat()}")
-        with self.thread_lock:
-            if resource not in self.data:
-                self.logger.warning('send_zabbix_discovery: resource "%s" not in self.data... skipping!' % resource)
-                return
 
-            data = list()
-            for obj_uid, obj in self.data[resource].objects.items():
-                data += obj.get_zabbix_discovery_data()
+        if resource not in self.data:
+            self.logger.warning('send_zabbix_discovery: resource "%s" not in self.data... skipping!' % resource)
+            return
 
-            if data:
-                metric = obj.get_discovery_for_zabbix(data)
-                self.logger.debug('send_zabbix_discovery: resource "%s": %s' % (resource, metric))
-                self.send_discovery_to_zabbix(resource, metric=metric)
-            else:
-                self.logger.warning('send_zabbix_discovery: resource "%s" has no discovery data' % resource)
+        data = list()
+        for obj_uid, obj in self.data[resource].objects.items():
+            data += obj.get_zabbix_discovery_data()
 
-            self.discovery_sent[resource] = datetime.now()
-            if resource == 'pods' and self.config.container_crawling == 'container':
-                self.discovery_sent['containers'] = datetime.now()
+        if data:
+            metric = obj.get_discovery_for_zabbix(data)
+            self.logger.debug('send_zabbix_discovery: resource "%s": %s' % (resource, metric))
+            self.send_discovery_to_zabbix(resource, metric=metric)
+        else:
+            self.logger.warning('send_zabbix_discovery: resource "%s" has no discovery data' % resource)
+
+        self.discovery_sent[resource] = datetime.now()
+        if resource == 'pods' and self.config.container_crawling == 'container':
+            self.discovery_sent['containers'] = datetime.now()
 
     def send_object(self, resource: str, resourced_obj: K8sObject,
                     event_type: str, send_zabbix_data: bool = False,

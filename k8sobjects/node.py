@@ -33,6 +33,9 @@ class Node(K8sObject):
         "capacity.pods",
     ]
 
+    def get_list(self):
+        return self.manager.api.list_node()
+
     @property
     def resource_data(self):
         data = super().resource_data

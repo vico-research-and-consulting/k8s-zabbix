@@ -10,6 +10,9 @@ logger = logging.getLogger("k8s-zabbix")
 class Component(K8sObject):
     object_type = 'component'
 
+    def get_list(self):
+        return self.manager.api.list_component_status()
+
     @property
     def resource_data(self):
         data = super().resource_data

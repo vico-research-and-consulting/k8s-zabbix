@@ -158,6 +158,18 @@ class K8sObject:
     def slug(self, name):
         return slugit(self.name_space or "None", name, 40)
 
+    def get_uid_list(self):
+        ret = []
+        if self.resource == 'pvcs':
+            obj_list = self.get_list()
+        else:
+            obj_list = self.get_list().items
+
+        for obj in obj_list:
+            n = self.manager.resource_class(obj.to_dict(), self.resource, manager=self.manager)
+            ret.append(n.uid)
+        return ret
+
     def is_unsubmitted_web(self) -> bool:
         return self.last_sent_web == INITIAL_DATE
 

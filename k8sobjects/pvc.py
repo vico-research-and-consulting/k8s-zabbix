@@ -110,6 +110,12 @@ def get_pvc_volumes_for_all_nodes(api: CoreV1Api, timeout: int, namespace_exclud
 class Pvc(K8sObject):
     object_type = "pvc"
 
+    def get_list(self):
+        return get_pvc_volumes_for_all_nodes(api=self.manager.api,
+                                             timeout=self.manager.config.k8s_api_request_timeout_seconds,
+                                             namespace_exclude_re=self.manager.config.namespace_exclude_re,
+                                             resource_manager=self.manager)
+
     @property
     def resource_data(self):
         data = super().resource_data

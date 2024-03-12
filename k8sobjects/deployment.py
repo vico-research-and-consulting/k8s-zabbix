@@ -10,6 +10,9 @@ logger = logging.getLogger("k8s-zabbix")
 class Deployment(K8sObject):
     object_type = "deployment"
 
+    def get_list(self):
+        return self.manager.api.list_deployment_for_all_namespaces()
+
     @property
     def resource_data(self):
         data = super().resource_data

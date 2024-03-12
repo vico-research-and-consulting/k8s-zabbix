@@ -23,6 +23,9 @@ logger = logging.getLogger("k8s-zabbix")
 class Daemonset(K8sObject):
     object_type = "daemonset"
 
+    def get_list(self):
+        return self.manager.api.list_daemon_set_for_all_namespaces()
+
     @property
     def resource_data(self):
         data = super().resource_data

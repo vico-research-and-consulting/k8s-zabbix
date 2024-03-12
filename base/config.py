@@ -61,6 +61,9 @@ class Configuration:
     discovery_interval_slow: int = 60 * 60 * 2
     resend_data_interval_slow: int = 60 * 30
 
+    discovery_interval_delay: int = 120
+    data_resend_interval_delay: int = 180
+
     def _convert_to_type(self, field_name: str,
                          value: str | list[str] | bool | int | ClusterAccessConfigType) -> \
             str | list[str] | bool | int | ClusterAccessConfigType:
