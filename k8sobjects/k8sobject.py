@@ -166,8 +166,13 @@ class K8sObject:
             obj_list = self.get_list().items
 
         for obj in obj_list:
-            n = self.manager.resource_class(obj.to_dict(), self.resource, manager=self.manager)
-            ret.append(n.uid)
+            if self.resource == 'pvcs':
+                d = obj
+                ret.append(d.uid)
+            else:
+                d = obj.to_dict()
+                n = self.manager.resource_class(d, self.resource, manager=self.manager)
+                ret.append(n.uid)
         return ret
 
     def is_unsubmitted_web(self) -> bool:

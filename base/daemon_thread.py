@@ -60,6 +60,7 @@ class CheckKubernetesDaemon:
     data: dict[str, K8sResourceManager] = {}
     discovery_sent: dict[str, datetime] = {}
     thread_lock = threading.Lock()
+    data_refreshed: dict[str, datetime] = {}
 
     def __init__(self, config: Configuration,
                  resources: list[str],
@@ -455,10 +456,15 @@ class CheckKubernetesDaemon:
         """ Update elements on hold and send to zabbix """
         resource_obj = self.data[resource].resource_meta
         with self.thread_lock:
-            obj_list = resource_obj.get_uid_list()
-            for obj_uid in self.data[resource].objects:
-                if obj_uid not in obj_list:
-                    self.logger.info("NOT finding {obj.uid} anymore -> removing")
+            if resource in self.data_refreshed and self.data_refreshed[resource] < (datetime.now() - timedelta(hours=4)) \
+                    or resource not in self.data_refreshed:
+                obj_list = resource_obj.get_uid_list()
+                obj_list_len = len(obj_list)
+                self.logger.info(f"refreshing [{resource}] uid_list and check for orphans: {obj_list_len}")
+                for obj_uid in self.data[resource].objects:
+                    if obj_uid not in obj_list:
+                        self.logger.info(f"NOT finding [{resource}]{obj.uid} anymore -> removing")
+                        self.data[resource].del_obj(obj_uid)
             self.send_zabbix_discovery(resource)
 
     def send_zabbix_discovery(self, resource: str) -> None:
