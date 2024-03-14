@@ -465,6 +465,8 @@ class CheckKubernetesDaemon:
                     if obj_uid not in obj_list:
                         self.logger.info(f"NOT finding [{resource}]{obj_uid} anymore -> removing")
                         self.data[resource].del_obj(obj_uid)
+
+                self.data_refreshed[resource] = datetime.now()
             self.send_zabbix_discovery(resource)
 
     def send_zabbix_discovery(self, resource: str) -> None:
