@@ -463,7 +463,7 @@ class CheckKubernetesDaemon:
                 self.logger.info(f"refreshing [{resource}] uid_list and check for orphans: {obj_list_len}")
                 for obj_uid in self.data[resource].objects:
                     if obj_uid not in obj_list:
-                        self.logger.info(f"NOT finding [{resource}]{obj.uid} anymore -> removing")
+                        self.logger.info(f"NOT finding [{resource}]{obj_uid} anymore -> removing")
                         self.data[resource].del_obj(obj_uid)
             self.send_zabbix_discovery(resource)
 
