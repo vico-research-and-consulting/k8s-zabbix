@@ -24,9 +24,9 @@ class Pod(K8sObject):
 
     @property
     def real_name(self) -> str:
-        if 'metadata' not in self.data and 'name' in self.data['metadata']:
-            raise Exception(f'Could not find name in metadata for resource {self.resource}')
-        return self.data['metadata']['name']
+        if 'metadata' in self.data and 'name' in self.data['metadata']:
+            return self.data['metadata']['name']
+        raise Exception(f'Could not find name with metadata in data for resource {self.resource}: {self.data}')
 
     @property
     def base_name(self) -> str:
