@@ -71,12 +71,18 @@ class K8sResourceManager:
         # return created or updated object
         return self.objects[new_obj.uid]
 
-    def del_obj(self, obj: K8sObject) -> K8sObject | None:
+    def del_obj(self, obj: str | dict) -> K8sObject | None:
         if not self.resource_class:
             logger.error('No Resource Class found for "%s"' % self.resource)
             return None
 
-        resourced_obj = self.resource_class(obj, self.resource, manager=self)
-        if resourced_obj.uid in self.objects:
-            del self.objects[resourced_obj.uid]
+        if isinstance(obj, str):
+            # find by string
+            resourced_obj = self.objects[obj]
+            del self.objects[obj]
+        else:
+            # find by dict data
+            resourced_obj = self.resource_class(obj, self.resource, manager=self)
+            if resourced_obj.uid in self.objects:
+                del self.objects[resourced_obj.uid]
         return resourced_obj
