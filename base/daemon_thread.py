@@ -461,7 +461,11 @@ class CheckKubernetesDaemon:
                 obj_list = resource_obj.get_uid_list()
                 obj_list_len = len(obj_list)
                 self.logger.info(f"refreshing [{resource}] uid_list and check for orphans: {obj_list_len}")
-                for obj_uid in self.data[resource].objects:
+                if resource in self.data_refreshed:
+                    self.logger.info(f"last refresh: {self.data_refreshed[resource]}")
+
+                # copy dict to delete in it
+                for obj_uid in self.data[resource].objects.copy():
                     if obj_uid not in obj_list:
                         self.logger.info(f"NOT finding [{resource}]{obj_uid} anymore -> removing")
                         self.data[resource].del_obj(obj_uid)
