@@ -64,13 +64,16 @@ class CheckKubernetesDaemon:
 
     def __init__(self, config: Configuration,
                  resources: list[str],
-                 discovery_interval: int, data_resend_interval: int,
+                 discovery_interval: int,
+                 data_resend_interval: int,
+                 data_refresh_interval: int,
                  ):
         self.manage_threads: list[TimedThread | WatcherThread] = []
         self.config: Configuration = config
         self.logger = logging.getLogger("k8s-zabbix")
         self.discovery_interval = int(discovery_interval)
         self.data_resend_interval = int(data_resend_interval)
+        self.data_refresh_interval = int(data_refresh_interval)
 
         self.api_zabbix_interval = 60
         self.rate_limit_seconds = 30
@@ -319,10 +322,10 @@ class CheckKubernetesDaemon:
         if event_type.lower() in ['added', 'modified']:
             with self.thread_lock:
                 resourced_obj = self.data[resource].add_obj_from_data(obj)
-            if resourced_obj and (resourced_obj.is_dirty_zabbix or resourced_obj.is_dirty_web):
-                self.send_object(resource, resourced_obj, event_type,
-                                 send_zabbix_data=resourced_obj.is_dirty_zabbix,
-                                 send_web=resourced_obj.is_dirty_web)
+                if resourced_obj and (resourced_obj.is_dirty_zabbix or resourced_obj.is_dirty_web):
+                    self.send_object(resource, resourced_obj, event_type,
+                                     send_zabbix_data=resourced_obj.is_dirty_zabbix,
+                                     send_web=resourced_obj.is_dirty_web)
         elif event_type.lower() == 'deleted':
             with self.thread_lock:
                 resourced_obj = self.data[resource].del_obj(obj)
@@ -330,6 +333,7 @@ class CheckKubernetesDaemon:
                     self.delete_object(resource, resourced_obj)
         else:
             self.logger.info('event type "%s" not implemented' % event_type)
+        self.logger.debug(f'watch_event_handler[{resource}] finished')
 
     def report_global_data_zabbix(self, resource: str) -> None:
         """ aggregate and report information for some speciality in resources """
@@ -455,20 +459,25 @@ class CheckKubernetesDaemon:
     def update_discovery(self, resource: str) -> None:
         """ Update elements on hold and send to zabbix """
         resource_obj = self.data[resource].resource_meta
-        with self.thread_lock:
-            if resource in self.data_refreshed and self.data_refreshed[resource] < (datetime.now() - timedelta(hours=4)) \
+        with (self.thread_lock):
+            self.logger.debug(f"update_discovery[{resource}]: got thread_lock")
+            if resource in self.data_refreshed \
+                    and self.data_refreshed[resource] < (datetime.now() - timedelta(seconds=self.data_refresh_interval)) \
                     or resource not in self.data_refreshed:
-                obj_list = resource_obj.get_uid_list()
-                obj_list_len = len(obj_list)
-                self.logger.info(f"refreshing [{resource}] uid_list and check for orphans: {obj_list_len}")
+                obj_uid_list, obj_data_list = resource_obj.get_uid_list_and_data()
+                obj_uid_list_len = len(obj_uid_list)
+                self.logger.info(f"refreshing [{resource}] uid_list + data and check for orphans: {obj_uid_list_len}")
                 if resource in self.data_refreshed:
                     self.logger.info(f"last refresh: {self.data_refreshed[resource]}")
 
                 # copy dict to delete in it
                 for obj_uid in self.data[resource].objects.copy():
-                    if obj_uid not in obj_list:
+                    if obj_uid not in obj_uid_list:
                         self.logger.info(f"NOT finding [{resource}]{obj_uid} anymore -> removing")
                         self.data[resource].del_obj(obj_uid)
+                    else:
+                        # update obj information
+                        self.data[resource].add_obj(obj_data_list[obj_uid])
 
                 self.data_refreshed[resource] = datetime.now()
             self.send_zabbix_discovery(resource)
@@ -501,33 +510,31 @@ class CheckKubernetesDaemon:
                     event_type: str, send_zabbix_data: bool = False,
                     send_web: bool = False) -> None:
         # send single object for updates
-        with self.thread_lock:
+        if send_zabbix_data:
+            if resourced_obj.last_sent_zabbix < datetime.now() - timedelta(seconds=self.rate_limit_seconds):
+                self.send_data_to_zabbix(resource, obj=resourced_obj)
+                resourced_obj.last_sent_zabbix = datetime.now()
+                resourced_obj.is_dirty_zabbix = False
+            else:
+                self.logger.debug(
+                    "obj >>>type: %s, name: %s/%s<<< not sending to zabbix! rate limited (%is)"
+                    % (resource, resourced_obj.name_space, resourced_obj.name, self.rate_limit_seconds)
+                )
+                resourced_obj.is_dirty_zabbix = True
 
-            if send_zabbix_data:
-                if resourced_obj.last_sent_zabbix < datetime.now() - timedelta(seconds=self.rate_limit_seconds):
-                    self.send_data_to_zabbix(resource, obj=resourced_obj)
-                    resourced_obj.last_sent_zabbix = datetime.now()
-                    resourced_obj.is_dirty_zabbix = False
-                else:
-                    self.logger.debug(
-                        "obj >>>type: %s, name: %s/%s<<< not sending to zabbix! rate limited (%is)"
-                        % (resource, resourced_obj.name_space, resourced_obj.name, self.rate_limit_seconds)
-                    )
-                    resourced_obj.is_dirty_zabbix = True
-
-            if send_web:
-                if resourced_obj.last_sent_web < datetime.now() - timedelta(seconds=self.rate_limit_seconds):
-                    self.send_to_web_api(resource, resourced_obj, event_type)
-                    resourced_obj.last_sent_web = datetime.now()
-                    if resourced_obj.is_dirty_web is True and not send_zabbix_data:
-                        # only set dirty False if send_to_web_api worked
-                        resourced_obj.is_dirty_web = False
-                else:
-                    self.logger.debug(
-                        "obj >>>type: %s, name: %s/%s<<< not sending to web! rate limited (%is)"
-                        % (resource, resourced_obj.name_space, resourced_obj.name, self.rate_limit_seconds)
-                    )
-                    resourced_obj.is_dirty_web = True
+        if send_web:
+            if resourced_obj.last_sent_web < datetime.now() - timedelta(seconds=self.rate_limit_seconds):
+                self.send_to_web_api(resource, resourced_obj, event_type)
+                resourced_obj.last_sent_web = datetime.now()
+                if resourced_obj.is_dirty_web is True and not send_zabbix_data:
+                    # only set dirty False if send_to_web_api worked
+                    resourced_obj.is_dirty_web = False
+            else:
+                self.logger.debug(
+                    "obj >>>type: %s, name: %s/%s<<< not sending to web! rate limited (%is)"
+                    % (resource, resourced_obj.name_space, resourced_obj.name, self.rate_limit_seconds)
+                )
+                resourced_obj.is_dirty_web = True
 
     def send_heartbeat_info(self, resource: str) -> None:
         result = self.send_to_zabbix([

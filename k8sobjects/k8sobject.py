@@ -158,8 +158,11 @@ class K8sObject:
     def slug(self, name):
         return slugit(self.name_space or "None", name, 40)
 
-    def get_uid_list(self):
-        ret = []
+    def get_uid_list_and_data(self, data=None):
+        uid_ret = []
+        data_ret = {}
+
+        # if no data was fetched and passed before: fetch it
         if self.resource == 'pvcs':
             obj_list = self.get_list()
         else:
@@ -168,12 +171,14 @@ class K8sObject:
         for obj in obj_list:
             if self.resource == 'pvcs':
                 d = obj
-                ret.append(d.uid)
+                uid_ret.append(d.uid)
+                data_ret[d.uid] = d
             else:
                 d = obj.to_dict()
                 n = self.manager.resource_class(d, self.resource, manager=self.manager)
-                ret.append(n.uid)
-        return ret
+                uid_ret.append(n.uid)
+                data_ret[n.uid] = n
+        return uid_ret, data_ret
 
     def is_unsubmitted_web(self) -> bool:
         return self.last_sent_web == INITIAL_DATE

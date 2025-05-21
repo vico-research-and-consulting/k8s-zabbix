@@ -95,27 +95,35 @@ if __name__ == '__main__':
 
     mgmt_daemon = CheckKubernetesDaemon(config,
                                         ['nodes'],
-                                        config.discovery_interval_slow, config.resend_data_interval_slow)
+                                        config.discovery_interval_slow,
+                                        config.resend_data_interval_slow,
+                                        config.data_refresh_interval)
     daemons.append(mgmt_daemon)
 
     daemons.append(
         CheckKubernetesDaemon(config,
                               ['components', 'services', 'pvcs'],
                               # ['components', 'pvcs'],
-                              config.discovery_interval_slow, config.resend_data_interval_fast))
+                              config.discovery_interval_slow,
+                              config.resend_data_interval_fast,
+                              config.data_refresh_interval))
 
     daemons.append(
         CheckKubernetesDaemon(config,
                               # ['deployments', 'statefulsets', 'daemonsets', 'pods', 'containers',
                               ["statefulsets", "deployments", "daemonsets"],
-                              config.discovery_interval_slow, config.resend_data_interval_slow))
+                              config.discovery_interval_slow,
+                              config.resend_data_interval_slow,
+                              config.data_refresh_interval))
 
     daemons.append(
         CheckKubernetesDaemon(config,
                               # ['deployments', 'statefulsets', 'daemonsets', 'pods', 'containers',
                               # 'ingresses', 'containers', 'pods'],
                               ["pods", "containers"],
-                              config.discovery_interval_fast, config.resend_data_interval_fast))
+                              config.discovery_interval_fast,
+                              config.resend_data_interval_fast,
+                              config.data_refresh_interval))
 
     if config.debug_k8s_events:
         for daemon in daemons:

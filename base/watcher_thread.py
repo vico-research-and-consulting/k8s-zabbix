@@ -32,5 +32,6 @@ class WatcherThread(threading.Thread):
         try:
             getattr(self.daemon_object, self.daemon_method)(self.resource)
         except (ProtocolError, ConnectionError) as e:
-            self.logger.error(e)
+            self.logger.error("[exception thread|watch] %s -> %s: %s" % (self.resource, self.daemon_method, str(e)))
+            # self.logger.error(e)
             self.restart_thread = True
