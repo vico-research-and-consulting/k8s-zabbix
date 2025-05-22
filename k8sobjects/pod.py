@@ -169,6 +169,9 @@ class Pod(K8sObject):
         return data_to_send
 
     def get_discovery_for_zabbix(self, discovery_data=None):
+        if discovery_data is None:
+            discovery_data = self.get_zabbix_discovery_data()
+            
         if self.manager.config.container_crawling == 'container':
             discovery_string = "check_kubernetesd[discover, containers]"
         else:
