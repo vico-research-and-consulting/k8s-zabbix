@@ -1,8 +1,6 @@
-import json
 import logging
 import re
 from pprint import pformat
-
 from pyzabbix import ZabbixMetric
 
 from k8sobjects import K8sObject, transform_value
@@ -30,9 +28,6 @@ class Pod(K8sObject):
 
     @property
     def base_name(self) -> str:
-        if 'metadata' not in self.data and 'name' in self.data['metadata']:
-            raise Exception(f'Could not find name in metadata for resource {self.resource}')
-
         if "owner_references" in self.data['metadata'] and self.data['metadata']['owner_references'] is not None:
             try:
                 self.kind = self.data['metadata']['owner_references'][0]['kind']
@@ -42,22 +37,24 @@ class Pod(K8sObject):
 
         generate_name = self.real_name
 
+        # override with generate_name
         if "generate_name" in self.data['metadata'] and self.data['metadata']['generate_name']:
             generate_name = self.data['metadata']['generate_name']
 
-        base_name = ""
-        match self.kind:
-            case "Job":
-                base_name = re.sub(r'-\d+-$', '', generate_name)
-            case "ReplicaSet":
-                base_name = re.sub(r'-[a-f0-9]{4,}-$', '', generate_name)
-            case _:
-                try:
-                    base_name = re.sub(r'-$', '', generate_name)
-                except Exception as e:
-                    logger.warning("Container name Exception in Pod: %s\ngenerate_name:%s\ndata:%s\n" %
-                                   (self.kind, generate_name, pformat(self.data, indent=2)))
-        return base_name
+        ret_name = ""
+        if generate_name is not None:
+            match self.kind:
+                case "Job":
+                    ret_name = re.sub(r'-\d+-$', '', generate_name)
+                case "ReplicaSet":
+                    ret_name = re.sub(r'-[a-f0-9]{4,}-$', '', generate_name)
+                case _:
+                    try:
+                        ret_name = re.sub(r'-$', '', generate_name)
+                    except Exception as e:
+                        logger.warning("Container name Exception in Pod: %s\ngenerate_name:%s\ndata:%s\n: %s" %
+                                       (self.kind, generate_name, pformat(self.data, indent=2), str(e)))
+        return ret_name
 
     @property
     def resource_data(self):
@@ -172,24 +169,14 @@ class Pod(K8sObject):
 
     def get_discovery_for_zabbix(self, discovery_data=None):
         if self.manager.config.container_crawling == 'container':
-            if discovery_data is None:
-                discovery_data = self.get_zabbix_discovery_data(name_attr='base_name')
-            return ZabbixMetric(
-                self.zabbix_host,
-                "check_kubernetesd[discover,containers]",
-                json.dumps(
-                    {
-                        "data": discovery_data,
-                    }),
-            )
+            discovery_string = "check_kubernetesd[discover, containers]"
         else:
-            if discovery_data is None:
-                discovery_data = self.get_zabbix_discovery_data()
-            ZabbixMetric(
-                self.zabbix_host,
-                "check_kubernetesd[discover,pods]",
-                json.dumps(
-                    {
-                        "data": discovery_data,
-                    }),
-            )
+            discovery_string = "check_kubernetesd[discover, pods]"
+        return ZabbixMetric(
+            self.zabbix_host,
+            discovery_string,
+            json.dumps(
+                {
+                    "data": discovery_data,
+                }),
+        )

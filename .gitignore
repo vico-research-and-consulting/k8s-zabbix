@@ -8,6 +8,6 @@ lib/__pycache__/*
 *.swp
 venv/*
 *.log
-configd_*.ini
-configd_*.py
-dockerize.sh
+/config*.py
+/config*.ini
+.idea

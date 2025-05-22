@@ -13,7 +13,7 @@ from k8sobjects.k8sobject import K8sObject
 from k8sobjects.k8sresourcemanager import K8sResourceManager
 from k8sobjects.pvc import get_pvc_volumes_for_all_nodes
 from k8sobjects.container import get_container_zabbix_metrics
-from kubernetes import client
+from kubernetes import client, watch
 from kubernetes import config as kube_config
 from kubernetes import watch
 from kubernetes.client import (ApiClient, AppsV1Api, CoreV1Api,
@@ -52,7 +52,7 @@ class KubernetesApi:
             self.core_v1 = client.CoreV1Api(api_client)
         if not getattr(self, "apps_v1", None):
             self.apps_v1 = client.AppsV1Api(api_client)
-        if not getattr(self, "exentsions_v1", None):
+        if not getattr(self, 'extensions_v1', None):
             self.extensions_v1 = client.ApiextensionsV1Api(api_client)
 
 
@@ -236,6 +236,17 @@ class CheckKubernetesDaemon:
                                         )
             self.manage_threads.append(resend_thread)
             resend_thread.start()
+
+    def get_api_for_resource(self, resource: str) -> CoreV1Api | AppsV1Api | ApiextensionsV1Api:
+        if resource in ['nodes', 'components', 'secrets', 'pods', 'services', 'pvcs']:
+            api = self.core_v1
+        elif resource in ['deployments', 'daemonsets', 'statefulsets']:
+            api = self.apps_v1
+        elif resource in ['ingresses']:
+            api = self.extensions_v1
+        else:
+            raise AttributeError('No valid resource found: %s' % resource)
+        return api
 
     def get_web_api(self) -> WebApi:
         if not hasattr(self, '_web_api'):
@@ -564,7 +575,8 @@ class CheckKubernetesDaemon:
                 self.logger.info('===> Sending to zabbix: >>>%s<<<' % metrics)
         return result
 
-    def send_discovery_to_zabbix(self, resource: str, metric: ZabbixMetric | list = None, obj: K8sObject | None = None) -> None:
+    def send_discovery_to_zabbix(self, resource: str, metric: ZabbixMetric | list = None,
+                                 obj: K8sObject | None = None) -> None:
         if resource not in self.zabbix_resources:
             self.logger.warning(
                 f'resource {resource} ist not activated, active resources are : {",".join(self.zabbix_resources)}')

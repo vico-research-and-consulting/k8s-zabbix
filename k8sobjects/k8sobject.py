@@ -116,6 +116,9 @@ class K8sObject:
     @property
     def resource_data(self) -> dict[str, str]:
         """ customized values for k8s objects """
+        if self.name_space is None:
+            if self.resource is not "Node":
+                raise RuntimeError("name_space is None for %s" % self.name)
         return dict(
             name=self.name,
             name_space=self.name_space
