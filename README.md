@@ -30,9 +30,9 @@ The solution currently supervises the following types of Kubernetes entities:
 * replicasets: Check and discover replicasets readiness
 * tls: Check tls secrets expiration dates
 
-For details or a overview of the monitored kubernetes attributes, have a look at the [documentation](http://htmlpreview.github.io/?https://github.com/vico-research-and-consulting/k8s-zabbix/blob/master/documentation/template/custom_service_kubernetes.html)
+For details or a overview of the monitored kubernetes attributes, have a look at the [documentation](http://htmlpreview.github.io/?https://github.com/zabbix-tooling/k8s-zabbix/blob/master/documentation/template/custom_service_kubernetes.html)
 
-The current docker image is published at https://hub.docker.com/r/vicoconsulting/k8s-zabbix/
+The current docker image is published at https://hub.docker.com/r/zabbixtooling/k8s-zabbix/
 
 Architecture Details
 =====================
