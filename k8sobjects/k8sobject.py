@@ -117,7 +117,7 @@ class K8sObject:
     def resource_data(self) -> dict[str, str]:
         """ customized values for k8s objects """
         if self.name_space is None:
-            if self.resource.lower() != "nodes":
+            if self.resource.lower() not in ["nodes", "components"]:
                 raise RuntimeError(f"name_space is None for [{self.resource}] {self.name}")
         return dict(
             name=self.name,
