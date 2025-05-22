@@ -78,11 +78,13 @@ def _process_volume(item: dict, namespace_exclude_re: str, node: str,
                                                           owner_references=list())
 
         volume['nodename'] = node
-        volume['usedBytesPercentage'] = float(float(
-            volume['usedBytes'] / volume['capacityBytes'])) * 100
+        if volume['capacityBytes'] != 0:
+            volume['usedBytesPercentage'] = float(float(
+                volume['usedBytes'] / volume['capacityBytes'])) * 100
 
-        volume['inodesUsedPercentage'] = float(float(
-            volume['inodesUsed'] / volume['inodes'])) * 100
+        if volume['inodes'] != 0:
+            volume['inodesUsedPercentage'] = float(float(
+                volume['inodesUsed'] / volume['inodes'])) * 100
 
         for key in ['name', 'pvcRef', 'time', 'availableBytes', 'inodesFree']:
             volume.pop(key, None)
