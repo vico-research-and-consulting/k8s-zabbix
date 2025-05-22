@@ -1,4 +1,5 @@
 import logging
+import json
 import re
 from pprint import pformat
 from pyzabbix import ZabbixMetric
